@@ -66,3 +66,5 @@ Cakes&Candels/
   - `GET http://localhost:3000/live` (Liveness check)
 - Authenticated login:
   - `POST http://localhost:3000/api/auth/login` (Body: `{"username": "admin", "password": "adminpassword"}`)
+
+<!-- test change: verifying commit/push access -->
