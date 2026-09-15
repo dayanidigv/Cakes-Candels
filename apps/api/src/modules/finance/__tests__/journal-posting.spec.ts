@@ -13,21 +13,19 @@ describe('Sprint 12 — Phase 12.3: Journal Posting & Invariant Validation Suite
 
   const userOrgA: RequestingUser = {
     id: '55555555-5555-5555-5555-555555555555',
-      userId: '55555555-5555-5555-5555-555555555555',
-      permissions: [],
-      scope: 'GLOBAL',
+    userId: '55555555-5555-5555-5555-555555555555',
     organizationId: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
     role: 'SUPER_ADMIN',
+    scope: 'GLOBAL',
     permissions: ['finance:journal:post', 'finance:journal:read'],
   };
 
   const userOrgB: RequestingUser = {
     id: '66666666-6666-6666-6666-666666666666',
-      userId: '66666666-6666-6666-6666-666666666666',
-      permissions: [],
-      scope: 'GLOBAL',
+    userId: '66666666-6666-6666-6666-666666666666',
     organizationId: 'ffffffff-ffff-ffff-ffff-ffffffffffff',
     role: 'SUPER_ADMIN',
+    scope: 'GLOBAL',
     permissions: ['finance:journal:post', 'finance:journal:read'],
   };
 
@@ -57,24 +55,12 @@ describe('Sprint 12 — Phase 12.3: Journal Posting & Invariant Validation Suite
     // Create Organizations
     await prisma.organization.upsert({
       where: { id: userOrgA.organizationId },
-      userId: userOrgA.organizationId },
-      permissions: [],
-      scope: 'GLOBAL',
-      create: { id: userOrgA.organizationId,
-      userId: userOrgA.organizationId,
-      permissions: [],
-      scope: 'GLOBAL', code: 'POST_ORG_A', name: 'Posting Test Org A' },
+      create: { id: userOrgA.organizationId, code: 'POST_ORG_A', name: 'Posting Test Org A' },
       update: {},
     });
     await prisma.organization.upsert({
       where: { id: userOrgB.organizationId },
-      userId: userOrgB.organizationId },
-      permissions: [],
-      scope: 'GLOBAL',
-      create: { id: userOrgB.organizationId,
-      userId: userOrgB.organizationId,
-      permissions: [],
-      scope: 'GLOBAL', code: 'POST_ORG_B', name: 'Posting Test Org B' },
+      create: { id: userOrgB.organizationId, code: 'POST_ORG_B', name: 'Posting Test Org B' },
       update: {},
     });
 
@@ -148,10 +134,7 @@ describe('Sprint 12 — Phase 12.3: Journal Posting & Invariant Validation Suite
       },
       userOrgA,
     );
-    await prisma.account.update({ where: { id: inactiveAccount.id },
-      userId: inactiveAccount.id },
-      permissions: [],
-      scope: 'GLOBAL', data: { isActive: false } });
+    await prisma.account.update({ where: { id: inactiveAccount.id }, data: { isActive: false } });
 
     // Org B Account
     accountOrgB = await accountService.createAccount(

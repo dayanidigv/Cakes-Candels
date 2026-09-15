@@ -43,7 +43,6 @@ describe('Sprint 12.4.3 — Expense Concurrency & Atomic Race Invariants Test Su
       id: '00000000-0000-0000-0000-000000000001',
       userId: '00000000-0000-0000-0000-000000000001',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgId,
       branchId,
       scope: 'GLOBAL',
@@ -104,18 +103,7 @@ describe('Sprint 12.4.3 — Expense Concurrency & Atomic Race Invariants Test Su
     await prisma.$disconnect();
   });
 
-  it('1. 100-thread concurrent creation with same idempotency key creates 1 Expense and 99 replays',
-      userId: expenseAccount.id } }).catch(() => null);
-    }
-    if (paymentAccount) {
-      await prisma.account.delete({ where: { id: paymentAccount.id } }).catch(() => null);
-    }
-    await prisma.$disconnect();
-  });
-
-  it('1. 100-thread concurrent creation with same idempotency key creates 1 Expense and 99 replays',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('1. 100-thread concurrent creation with same idempotency key creates 1 Expense and 99 replays', async () => {
     const key = `idem-conc-create-${Date.now()}`;
     const dto: CreateExpenseDto = {
       branchId,
@@ -176,12 +164,7 @@ describe('Sprint 12.4.3 — Expense Concurrency & Atomic Race Invariants Test Su
 
     const updated = await prisma.expense.findUnique({ where: { id: expense.id } });
     expect(updated?.status).toBe(ExpenseStatus.APPROVED);
-  },
-      userId: expense.id } });
-    expect(updated?.status).toBe(ExpenseStatus.APPROVED);
-  },
-      permissions: [],
-      scope: 'GLOBAL', 30000);
+  }, 30000);
 
   it('3. 100-thread concurrent GL posting requests for the same expense results in exactly 1 GL journal', async () => {
     const dto: CreateExpenseDto = {

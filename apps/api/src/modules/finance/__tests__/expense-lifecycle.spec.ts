@@ -39,7 +39,6 @@ describe('Sprint 12.4.3 — Expense Operational Lifecycle & Validation Test Suit
       id: '00000000-0000-0000-0000-000000000001',
       userId: '00000000-0000-0000-0000-000000000001',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgId,
       branchId,
       scope: 'GLOBAL',
@@ -49,7 +48,6 @@ describe('Sprint 12.4.3 — Expense Operational Lifecycle & Validation Test Suit
       id: '00000000-0000-0000-0000-000000000002',
       userId: '00000000-0000-0000-0000-000000000002',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgId,
       branchId: '00000000-0000-0000-0000-000000000099',
       scope: 'BRANCH',
@@ -103,18 +101,7 @@ describe('Sprint 12.4.3 — Expense Operational Lifecycle & Validation Test Suit
     await prisma.$disconnect();
   });
 
-  it('1. should create a DRAFT expense with server-calculated GST 18% tax and total',
-      userId: expenseAccount.id } }).catch(() => null);
-    }
-    if (paymentAccount) {
-      await prisma.account.delete({ where: { id: paymentAccount.id } }).catch(() => null);
-    }
-    await prisma.$disconnect();
-  });
-
-  it('1. should create a DRAFT expense with server-calculated GST 18% tax and total',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('1. should create a DRAFT expense with server-calculated GST 18% tax and total', async () => {
     const dto: CreateExpenseDto = {
       branchId,
       expenseAccountId: expenseAccount.id,

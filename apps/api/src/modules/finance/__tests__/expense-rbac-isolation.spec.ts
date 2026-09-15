@@ -61,13 +61,6 @@ describe('Sprint 12.4.3 — Expense RBAC & Multi-Tenant Isolation Test Suite', (
       branchB = await prisma.branch.create({
         data: {
           organizationId: orgIdA,
-      userId: { not: branchIdA } } });
-    if (!branchB) {
-      branchB = await prisma.branch.create({
-        data: {
-          organizationId: orgIdA,
-      permissions: [],
-      scope: 'GLOBAL',
           name: 'Secondary Branch B',
           type: LocationType.RETAIL_BRANCH,
           address: 'Branch B Address',
@@ -80,7 +73,6 @@ describe('Sprint 12.4.3 — Expense RBAC & Multi-Tenant Isolation Test Suite', (
       id: '00000000-0000-0000-0000-000000000001',
       userId: '00000000-0000-0000-0000-000000000001',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgIdA,
       scope: 'GLOBAL',
     };
@@ -89,7 +81,6 @@ describe('Sprint 12.4.3 — Expense RBAC & Multi-Tenant Isolation Test Suite', (
       id: '00000000-0000-0000-0000-000000000088',
       userId: '00000000-0000-0000-0000-000000000088',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgIdB,
       scope: 'GLOBAL',
     };
@@ -98,7 +89,6 @@ describe('Sprint 12.4.3 — Expense RBAC & Multi-Tenant Isolation Test Suite', (
       id: '00000000-0000-0000-0000-000000000002',
       userId: '00000000-0000-0000-0000-000000000002',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgIdA,
       branchId: branchIdA,
       scope: 'BRANCH',
@@ -140,18 +130,7 @@ describe('Sprint 12.4.3 — Expense RBAC & Multi-Tenant Isolation Test Suite', (
     await prisma.$disconnect();
   });
 
-  it('1. should prevent User in Org B from accessing or mutating Expense in Org A',
-      userId: expenseAccountA.id } }).catch(() => null);
-    }
-    if (paymentAccountA) {
-      await prisma.account.delete({ where: { id: paymentAccountA.id } }).catch(() => null);
-    }
-    await prisma.$disconnect();
-  });
-
-  it('1. should prevent User in Org B from accessing or mutating Expense in Org A',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('1. should prevent User in Org B from accessing or mutating Expense in Org A', async () => {
     const dto: CreateExpenseDto = {
       branchId: branchIdA,
       expenseAccountId: expenseAccountA.id,

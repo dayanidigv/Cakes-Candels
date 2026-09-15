@@ -15,11 +15,10 @@ describe('Sprint 12 — Phase 12.3: Journal Reversal & Account Ledger Suite', ()
 
   const userOrg: RequestingUser = {
     id: '77777777-7777-7777-7777-777777777777',
-      userId: '77777777-7777-7777-7777-777777777777',
-      permissions: [],
-      scope: 'GLOBAL',
+    userId: '77777777-7777-7777-7777-777777777777',
     organizationId: '77777777-aaaa-bbbb-cccc-777777777777',
     role: 'SUPER_ADMIN',
+    scope: 'GLOBAL',
     permissions: ['finance:journal:post', 'finance:journal:read', 'finance:journal:reverse', 'finance:coa:read'],
   };
 
@@ -45,13 +44,7 @@ describe('Sprint 12 — Phase 12.3: Journal Reversal & Account Ledger Suite', ()
 
     await prisma.organization.upsert({
       where: { id: userOrg.organizationId },
-      userId: userOrg.organizationId },
-      permissions: [],
-      scope: 'GLOBAL',
-      create: { id: userOrg.organizationId,
-      userId: userOrg.organizationId,
-      permissions: [],
-      scope: 'GLOBAL', code: 'REV_ORG', name: 'Reversal Test Org' },
+      create: { id: userOrg.organizationId, code: 'REV_ORG', name: 'Reversal Test Org' },
       update: {},
     });
 
@@ -158,15 +151,7 @@ describe('Sprint 12 — Phase 12.3: Journal Reversal & Account Ledger Suite', ()
     expect(updatedOriginal!.reversalEntryId).toBe(reversalJournal.id);
   });
 
-  it('2. should reject reversing an already reversed journal entry',
-      userId: originalJournal.id } });
-    expect(updatedOriginal!.status).toBe(JournalEntryStatus.REVERSED);
-    expect(updatedOriginal!.reversalEntryId).toBe(reversalJournal.id);
-  });
-
-  it('2. should reject reversing an already reversed journal entry',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('2. should reject reversing an already reversed journal entry', async () => {
     const original = await prisma.journalEntry.findFirst({
       where: { organizationId: userOrg.organizationId, status: JournalEntryStatus.REVERSED },
     });

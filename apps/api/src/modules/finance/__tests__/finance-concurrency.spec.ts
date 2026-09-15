@@ -10,11 +10,10 @@ describe('Sprint 12 — Phase 12.2: 100-Thread Concurrency & Idempotency Suite',
 
   const userOrg: RequestingUser = {
     id: '44444444-4444-4444-4444-444444444444',
-      userId: '44444444-4444-4444-4444-444444444444',
-      permissions: [],
-      scope: 'GLOBAL',
+    userId: '44444444-4444-4444-4444-444444444444',
     organizationId: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
     role: 'SUPER_ADMIN',
+    scope: 'GLOBAL',
     permissions: ['finance:coa:create', 'finance:coa:read', 'finance:period:create', 'finance:period:close'],
   };
 
@@ -32,13 +31,7 @@ describe('Sprint 12 — Phase 12.2: 100-Thread Concurrency & Idempotency Suite',
 
     await prisma.organization.upsert({
       where: { id: userOrg.organizationId },
-      userId: userOrg.organizationId },
-      permissions: [],
-      scope: 'GLOBAL',
-      create: { id: userOrg.organizationId,
-      userId: userOrg.organizationId,
-      permissions: [],
-      scope: 'GLOBAL', code: 'CONCURRENCY_ORG', name: 'Concurrency Test Org' },
+      create: { id: userOrg.organizationId, code: 'CONCURRENCY_ORG', name: 'Concurrency Test Org' },
       update: {},
     });
   });
@@ -120,14 +113,7 @@ describe('Sprint 12 — Phase 12.2: 100-Thread Concurrency & Idempotency Suite',
     expect(updated!.status).toBe(FiscalPeriodStatus.CLOSED);
   });
 
-  it('3. 100 concurrent standard bakery COA seeds -> completely idempotent',
-      userId: period.id } });
-    expect(updated!.status).toBe(FiscalPeriodStatus.CLOSED);
-  });
-
-  it('3. 100 concurrent standard bakery COA seeds -> completely idempotent',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('3. 100 concurrent standard bakery COA seeds -> completely idempotent', async () => {
     const promises = Array.from({ length: 100 }, () =>
       accountService.seedSystemAccounts(userOrg.organizationId, userOrg.id),
     );

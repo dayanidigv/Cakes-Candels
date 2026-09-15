@@ -45,7 +45,6 @@ describe('Sprint 12.4.3 — Expense GL Non-Destructive Reversal Test Suite', () 
       id: '00000000-0000-0000-0000-000000000001',
       userId: '00000000-0000-0000-0000-000000000001',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgId,
       branchId,
       scope: 'GLOBAL',
@@ -106,18 +105,7 @@ describe('Sprint 12.4.3 — Expense GL Non-Destructive Reversal Test Suite', () 
     await prisma.$disconnect();
   });
 
-  it('1. should reverse POSTED expense by creating counter-journal in GL and marking Expense CANCELLED',
-      userId: expenseAccount.id } }).catch(() => null);
-    }
-    if (paymentAccount) {
-      await prisma.account.delete({ where: { id: paymentAccount.id } }).catch(() => null);
-    }
-    await prisma.$disconnect();
-  });
-
-  it('1. should reverse POSTED expense by creating counter-journal in GL and marking Expense CANCELLED',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('1. should reverse POSTED expense by creating counter-journal in GL and marking Expense CANCELLED', async () => {
     const dto: CreateExpenseDto = {
       branchId,
       expenseAccountId: expenseAccount.id,
@@ -154,14 +142,7 @@ describe('Sprint 12.4.3 — Expense GL Non-Destructive Reversal Test Suite', () 
     expect(origJournal?.reversalEntryId).toBe(revRes.reversalJournal.id);
   });
 
-  it('2. should reject duplicate reversal attempt for an already reversed expense',
-      userId: postRes.journal.id } });
-    expect(origJournal?.reversalEntryId).toBe(revRes.reversalJournal.id);
-  });
-
-  it('2. should reject duplicate reversal attempt for an already reversed expense',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('2. should reject duplicate reversal attempt for an already reversed expense', async () => {
     const dto: CreateExpenseDto = {
       branchId,
       expenseAccountId: expenseAccount.id,

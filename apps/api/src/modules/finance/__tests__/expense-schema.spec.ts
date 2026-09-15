@@ -80,18 +80,7 @@ describe('Sprint 12 — Phase 12.4.2: Expense Database Schema & Invariants Speci
     await prisma.$disconnect();
   });
 
-  it('1. should create an Expense with valid foreign keys,
-      userId: expenseAccount.id } }).catch(() => null);
-    }
-    if (paymentAccount) {
-      await prisma.account.delete({ where: { id: paymentAccount.id } }).catch(() => null);
-    }
-    await prisma.$disconnect();
-  });
-
-  it('1. should create an Expense with valid foreign keys,
-      permissions: [],
-      scope: 'GLOBAL', Decimal precision, and enum values', async () => {
+  it('1. should create an Expense with valid foreign keys, Decimal precision, and enum values', async () => {
     const expenseNumber = `EXP-TEST-001-${Date.now()}`;
     const expense = await prisma.expense.create({
       data: {
@@ -267,14 +256,7 @@ describe('Sprint 12 — Phase 12.4.2: Expense Database Schema & Invariants Speci
     await prisma.journalEntry.delete({ where: { id: journal.id } });
   });
 
-  it('5. should create and query ExpenseCategoryMapping with default COA account and tax rate',
-      userId: expense.id } });
-    await prisma.journalEntry.delete({ where: { id: journal.id } });
-  });
-
-  it('5. should create and query ExpenseCategoryMapping with default COA account and tax rate',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('5. should create and query ExpenseCategoryMapping with default COA account and tax rate', async () => {
     const categoryCode = `CAT-${Date.now().toString().slice(-4)}`;
     const category = await prisma.expenseCategoryMapping.create({
       data: {

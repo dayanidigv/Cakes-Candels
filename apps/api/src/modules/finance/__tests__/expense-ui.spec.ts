@@ -44,7 +44,6 @@ describe('Sprint 12.4.4 — Expense UI Workflow & End-to-End API Contracts', () 
       id: 'e9f16a4a-79a3-47aa-b027-eadd39b2e215',
       userId: 'e9f16a4a-79a3-47aa-b027-eadd39b2e215',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgId,
       branchId,
       scope: 'GLOBAL',

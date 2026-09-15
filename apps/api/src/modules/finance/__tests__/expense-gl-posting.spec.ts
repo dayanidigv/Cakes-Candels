@@ -47,7 +47,6 @@ describe('Sprint 12.4.3 — Expense GL Posting & Accounting Reconciliation Test 
       id: '00000000-0000-0000-0000-000000000001',
       userId: '00000000-0000-0000-0000-000000000001',
       permissions: [],
-      scope: 'GLOBAL',
       organizationId: orgId,
       branchId,
       scope: 'GLOBAL',
@@ -125,21 +124,7 @@ describe('Sprint 12.4.3 — Expense GL Posting & Accounting Reconciliation Test 
     await prisma.$disconnect();
   });
 
-  it('1. should post APPROVED expense to GL with balanced double-entry (Expense DR,
-      userId: expenseAccount.id } }).catch(() => null);
-    }
-    if (paymentAccount) {
-      await prisma.account.delete({ where: { id: paymentAccount.id } }).catch(() => null);
-    }
-    if (inputTaxAccount) {
-      await prisma.account.delete({ where: { id: inputTaxAccount.id } }).catch(() => null);
-    }
-    await prisma.$disconnect();
-  });
-
-  it('1. should post APPROVED expense to GL with balanced double-entry (Expense DR,
-      permissions: [],
-      scope: 'GLOBAL', Tax DR, Bank CR)', async () => {
+  it('1. should post APPROVED expense to GL with balanced double-entry (Expense DR, Tax DR, Bank CR)', async () => {
     const dto: CreateExpenseDto = {
       branchId,
       expenseAccountId: expenseAccount.id,

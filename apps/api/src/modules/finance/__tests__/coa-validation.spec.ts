@@ -9,21 +9,19 @@ describe('Sprint 12 — Phase 12.2: Chart of Accounts Validation Suite', () => {
 
   const userOrgA: RequestingUser = {
     id: '11111111-1111-1111-1111-111111111111',
-      userId: '11111111-1111-1111-1111-111111111111',
-      permissions: [],
-      scope: 'GLOBAL',
+    userId: '11111111-1111-1111-1111-111111111111',
     organizationId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     role: 'SUPER_ADMIN',
+    scope: 'GLOBAL',
     permissions: ['finance:coa:create', 'finance:coa:read', 'finance:coa:update'],
   };
 
   const userOrgB: RequestingUser = {
     id: '22222222-2222-2222-2222-222222222222',
-      userId: '22222222-2222-2222-2222-222222222222',
-      permissions: [],
-      scope: 'GLOBAL',
+    userId: '22222222-2222-2222-2222-222222222222',
     organizationId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     role: 'SUPER_ADMIN',
+    scope: 'GLOBAL',
     permissions: ['finance:coa:create', 'finance:coa:read'],
   };
 
@@ -46,24 +44,12 @@ describe('Sprint 12 — Phase 12.2: Chart of Accounts Validation Suite', () => {
     // Ensure organizations exist in DB
     await prisma.organization.upsert({
       where: { id: userOrgA.organizationId },
-      userId: userOrgA.organizationId },
-      permissions: [],
-      scope: 'GLOBAL',
-      create: { id: userOrgA.organizationId,
-      userId: userOrgA.organizationId,
-      permissions: [],
-      scope: 'GLOBAL', code: 'TEST_ORG_A', name: 'Test Org A' },
+      create: { id: userOrgA.organizationId, code: 'TEST_ORG_A', name: 'Test Org A' },
       update: {},
     });
     await prisma.organization.upsert({
       where: { id: userOrgB.organizationId },
-      userId: userOrgB.organizationId },
-      permissions: [],
-      scope: 'GLOBAL',
-      create: { id: userOrgB.organizationId,
-      userId: userOrgB.organizationId,
-      permissions: [],
-      scope: 'GLOBAL', code: 'TEST_ORG_B', name: 'Test Org B' },
+      create: { id: userOrgB.organizationId, code: 'TEST_ORG_B', name: 'Test Org B' },
       update: {},
     });
   });
@@ -156,14 +142,7 @@ describe('Sprint 12 — Phase 12.2: Chart of Accounts Validation Suite', () => {
     expect(updatedParent!.isPostable).toBe(false);
   });
 
-  it('5. should reject cross-organization parent account',
-      userId: parent!.id } });
-    expect(updatedParent!.isPostable).toBe(false);
-  });
-
-  it('5. should reject cross-organization parent account',
-      permissions: [],
-      scope: 'GLOBAL', async () => {
+  it('5. should reject cross-organization parent account', async () => {
     const parentOrgB = await prisma.account.findUnique({
       where: { organizationId_code: { organizationId: userOrgB.organizationId, code: '10000' } },
     });
@@ -193,10 +172,6 @@ describe('Sprint 12 — Phase 12.2: Chart of Accounts Validation Suite', () => {
           category: AccountCategory.CASH_AND_EQUIVALENTS,
           normalBalance: BalanceType.CREDIT, // Invalid: Assets must be DEBIT
         },
-      userId: Assets must be DEBIT
-        },
-      permissions: [],
-      scope: 'GLOBAL',
         userOrgA,
       ),
     ).rejects.toThrow(BadRequestException);

@@ -9,11 +9,10 @@ describe('Sprint 12 — Phase 12.2: Fiscal Calendar & Period Lock Suite', () => 
 
   const userOrgA: RequestingUser = {
     id: '33333333-3333-3333-3333-333333333333',
-      userId: '33333333-3333-3333-3333-333333333333',
-      permissions: [],
-      scope: 'GLOBAL',
+    userId: '33333333-3333-3333-3333-333333333333',
     organizationId: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
     role: 'SUPER_ADMIN',
+    scope: 'GLOBAL',
     permissions: ['finance:period:create', 'finance:period:read', 'finance:period:close', 'finance:period:reopen', 'finance:period:lock'],
   };
 
@@ -34,13 +33,7 @@ describe('Sprint 12 — Phase 12.2: Fiscal Calendar & Period Lock Suite', () => 
 
     await prisma.organization.upsert({
       where: { id: userOrgA.organizationId },
-      userId: userOrgA.organizationId },
-      permissions: [],
-      scope: 'GLOBAL',
-      create: { id: userOrgA.organizationId,
-      userId: userOrgA.organizationId,
-      permissions: [],
-      scope: 'GLOBAL', code: 'TEST_ORG_C', name: 'Test Org C' },
+      create: { id: userOrgA.organizationId, code: 'TEST_ORG_C', name: 'Test Org C' },
       update: {},
     });
   });

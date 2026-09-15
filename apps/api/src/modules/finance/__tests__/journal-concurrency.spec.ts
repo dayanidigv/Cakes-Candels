@@ -14,11 +14,10 @@ describe('Sprint 12 — Phase 12.3: 100-Thread Journal Concurrency & Idempotency
 
   const userOrg: RequestingUser = {
     id: '88888888-8888-8888-8888-888888888888',
-      userId: '88888888-8888-8888-8888-888888888888',
-      permissions: [],
-      scope: 'GLOBAL',
+    userId: '88888888-8888-8888-8888-888888888888',
     organizationId: '88888888-bbbb-cccc-dddd-888888888888',
     role: 'SUPER_ADMIN',
+    scope: 'GLOBAL',
     permissions: ['finance:journal:post', 'finance:journal:read', 'finance:period:create', 'finance:period:close'],
   };
 
@@ -45,13 +44,7 @@ describe('Sprint 12 — Phase 12.3: 100-Thread Journal Concurrency & Idempotency
 
     await prisma.organization.upsert({
       where: { id: userOrg.organizationId },
-      userId: userOrg.organizationId },
-      permissions: [],
-      scope: 'GLOBAL',
-      create: { id: userOrg.organizationId,
-      userId: userOrg.organizationId,
-      permissions: [],
-      scope: 'GLOBAL', code: 'JOURNAL_CONCURRENCY_ORG', name: 'Journal Concurrency Test Org' },
+      create: { id: userOrg.organizationId, code: 'JOURNAL_CONCURRENCY_ORG', name: 'Journal Concurrency Test Org' },
       update: {},
     });
 
