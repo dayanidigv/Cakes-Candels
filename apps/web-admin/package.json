@@ -1,0 +1,32 @@
+{
+  "name": "@cc-erp/web-admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@cc-erp/shared-config": "workspace:*",
+    "@cc-erp/shared-constants": "workspace:*",
+    "@cc-erp/shared-types": "workspace:*",
+    "@cc-erp/shared-ui": "workspace:*",
+    "@cc-erp/shared-utils": "workspace:*",
+    "lucide-react": "^1.21.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.5"
+  },
+  "tsconfig": {
+    "noUnusedLocals": "false"
+  }
+}

@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+/* ─── KDS Design Tokens ───────────────────────────────────────────────────── */
+:root {
+  --font-kds: 'Outfit', sans-serif;
+
+  /* KDS ultra-dark theme */
+  --bg-app: #080e1a;
+  --bg-panel: #0f172a;
+  --bg-card: #1a2540;
+  --bg-card-hover: #1e2d4e;
+  --bg-input: #1e293b;
+
+  /* Brand accents */
+  --color-primary: #f43f5e;
+  --color-primary-glow: rgba(244, 63, 94, 0.3);
+  --color-gold: #d97706;
+  --color-gold-glow: rgba(217, 119, 6, 0.3);
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-purple: #8b5cf6;
+  --color-blue: #3b82f6;
+  --color-danger: #ef4444;
+
+  /* Status Colors */
+  --status-baking: #f59e0b;
+  --status-decorating: #8b5cf6;
+  --status-qc: #3b82f6;
+  --status-ready: #10b981;
+  --status-priority: #d97706;
+
+  /* Text - high contrast for kitchen environments */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+
+  /* Borders */
+  --border: #1e3a5f;
+  --border-active: #f43f5e;
+
+  /* Shadows */
+  --shadow-card: 0 4px 20px rgba(0,0,0,0.5);
+  --shadow-glow-red: 0 0 20px rgba(244,63,94,0.2);
+  --shadow-glow-gold: 0 0 20px rgba(217,119,6,0.25);
+  --shadow-glow-green: 0 0 20px rgba(16,185,129,0.2);
+
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font-kds);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+.kds-btn {
+  border: none; border-radius: 8px; padding: 10px 18px;
+  font-family: var(--font-kds); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s ease;
+  display: flex; align-items: center; gap: 6px;
+}
+.kds-btn:active { transform: scale(0.96); }
+.kds-btn-primary { background: var(--color-primary); color: #fff; }
+.kds-btn-primary:hover { filter: brightness(1.1); }
+.kds-btn-success { background: var(--color-success); color: #fff; }
+.kds-btn-success:hover { filter: brightness(1.1); }
+.kds-btn-warning { background: var(--color-warning); color: #111; }
+.kds-btn-purple { background: var(--color-purple); color: #fff; }
+.kds-btn-ghost { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-secondary); }
+.kds-btn-ghost:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* ─── Material Symbols ────────────────────────────────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none; vertical-align: middle;
+}
+
+/* ─── Animations ──────────────────────────────────────────────────────────── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse  { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes glow   { 0%, 100% { box-shadow: var(--shadow-glow-gold); } 50% { box-shadow: 0 0 40px rgba(217,119,6,0.5); } }
+@keyframes spin   { to { transform: rotate(360deg); } }
+@keyframes egglessFlash { 0%,100% { background: rgba(239,68,68,0.2); color: #f87171; } 50% { background: rgba(239,68,68,0.5); color: #fff; } }
+
+.fade-in { animation: fadeIn 0.25s ease; }
+.spinner { width: 22px; height: 22px; border: 2px solid var(--border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+/* ─── EGGLESS badge flashing ─────────────────────────────────────────────── */
+.eggless-badge {
+  animation: egglessFlash 1.2s ease-in-out infinite;
+  padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 800;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* ─── Priority border pulse ──────────────────────────────────────────────── */
+.priority-card { animation: glow 2s ease-in-out infinite; }

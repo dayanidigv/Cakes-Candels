@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cakes & Candles - Central ERP Platform Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary: #f43f5e;
+            --primary-hover: #e11d48;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --info: #06b6d4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.2s ease-in-out;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(244, 63, 94, 0.08) 0, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.08) 0, transparent 50%);
+            background-size: cover;
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar Navigation */
+        aside {
+            width: 260px;
+            border-right: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            font-size: 0.8rem;
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--primary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-item.active {
+            border-left: 3px solid var(--primary);
+            background: rgba(244, 63, 94, 0.1);
+            color: var(--primary);
+        }
+
+        /* Main Content Container */
+        main {
+            margin-left: 260px;
+            flex: 1;
+            padding: 2.5rem;
+            max-width: 1400px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--panel-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+        }
+
+        /* Dashboard Modules Grid */
+        .module-tab {
+            display: none;
+        }
+
+        .module-tab.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Cards & Tables styling */
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            margin-bottom: 1.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .stat-card h3 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        /* Pipelines & Kanban styling */
+        .pipeline-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .pipeline-col {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 400px;
+        }
+
+        .pipeline-col h4 {
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .pipeline-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+        }
+
+        .pipeline-card:hover {
+            border-color: var(--primary);
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .badge-info { background: rgba(6, 182, 212, 0.15); color: var(--info); }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="logo">
+            C&C ERP <span>v1.0</span>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item active" onclick="switchTab('dashboard')">📊 Summary Dashboard</li>
+            <li class="nav-item" onclick="switchTab('inventory')">📦 Inventory Ledger</li>
+            <li class="nav-item" onclick="switchTab('factory')">🏭 Factory & Production</li>
+            <li class="nav-item" onclick="switchTab('pos')">🛒 POS Retail Checkout</li>
+            <li class="nav-item" onclick="switchTab('custom-cakes')">🎂 Custom Cake Pipeline</li>
+            <li class="nav-item" onclick="switchTab('crm')">📣 CRM & Campaigns</li>
+        </ul>
+    </aside>
+
+    <main>
+        <header>
+            <div>
+                <h1 style="font-size: 2rem; font-weight: 700;">Cakes & Candles ERP</h1>
+                <p style="color: var(--text-muted);">Central Administration & Operations Dashboard</p>
+            </div>
+            <div class="user-profile">
+                <div class="avatar">A</div>
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem;">Admin User</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Central Factory</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Tab -->
+        <div id="dashboard" class="module-tab active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Today's Total Sales</h3>
+                    <div class="value">₹1,84,390</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending Custom Cakes</h3>
+                    <div class="value" style="color: var(--warning);">18 Cakes</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Active Deliveries</h3>
+                    <div class="value" style="color: var(--info);">5 Shipments</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Low Stock Alerts</h3>
+                    <div class="value" style="color: var(--primary);">4 Raw Materials</div>
+                </div>
+            </div>
+
+            <div class="glass-panel">
+                <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">System Wide Activity logs</h2>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                        <span>🚚 Branch Transfer Out: 20x Truffle Cake to Branch 3 (Anna Nagar)</span>
+                        <span style="color: var(--text-muted);">10 mins ago</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                        <span>🎂 Custom Cake Order #CC-9200 Booked (3Kg Chocolate Fantasy)</span>
+                        <span style="color: var(--text-muted);">24 mins ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Tab -->
+        <div id="inventory" class="module-tab">
+            <div class="glass-panel">
+                <h2>Multi-Location Inventory</h2>
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">Real-time Stock Ledger across Central Factory & Branches</p>
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-size: 0.9rem;">
+                            <th style="padding: 0.75rem;">SKU</th>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th>Stock Qty</th>
+                            <th>Unit</th>
+                            <th>Expiry Check</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 0.75rem;">RM-FLOUR-01</td>
+                            <td>All-Purpose Flour</td>
+                            <td>Central Factory</td>
+                            <td>420.00</td>
+                            <td>KG</td>
+                            <td><span class="badge badge-success">Good</span></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 0.75rem;">FG-TRUF-05</td>
+                            <td>Chocolate Truffle (Half KG)</td>
+                            <td>Branch 2 (Pudupalayam)</td>
+                            <td>12.00</td>
+                            <td>PCS</td>
+                            <td><span class="badge badge-warning">Expires in 1 day</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Custom Cakes Pipeline Tab -->
+        <div id="custom-cakes" class="module-tab">
+            <h2 style="margin-bottom: 1rem;">Custom Cake Orders Kanban</h2>
+            <div class="pipeline-container">
+                <div class="pipeline-col">
+                    <h4>Booked <span>(3)</span></h4>
+                    <div class="pipeline-card">
+                        <div style="font-weight: 600;">#CC-9204 - 3Kg Princess Cake</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Pickup: Branch 1 • tomorrow 4 PM</div>
+                    </div>
+                </div>
+                <div class="pipeline-col">
+                    <h4>Baking <span>(1)</span></h4>
+                    <div class="pipeline-card">
+                        <div style="font-weight: 600;">#CC-9201 - 2Kg Red Velvet</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Assigned: Chef Kumar</div>
+                    </div>
+                </div>
+                <div class="pipeline-col">
+                    <h4>Decorating <span>(2)</span></h4>
+                </div>
+                <div class="pipeline-col">
+                    <h4>Ready for Pickup <span>(4)</span></h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- POS Retail checkout -->
+        <div id="pos" class="module-tab">
+            <div class="glass-panel">
+                <h2>Branch POS Checkout</h2>
+                <div style="display: flex; gap: 2rem; margin-top: 1rem;">
+                    <div style="flex: 2;">
+                        <input type="text" placeholder="Search Item or Scan Barcode..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; margin-bottom: 1rem;">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                            <div class="glass-panel" style="padding: 1rem; cursor: pointer; text-align: center;">
+                                <strong>Truffle Cake 1/2Kg</strong>
+                                <div style="color: var(--primary); font-weight: 700; margin-top: 0.5rem;">₹450</div>
+                            </div>
+                            <div class="glass-panel" style="padding: 1rem; cursor: pointer; text-align: center;">
+                                <strong>Black Forest 1/2Kg</strong>
+                                <div style="color: var(--primary); font-weight: 700; margin-top: 0.5rem;">₹400</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex: 1; border-left: 1px solid var(--border-color); padding-left: 2rem;">
+                        <h3>Active Cart</h3>
+                        <div style="margin: 1rem 0; font-size: 0.9rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span>1x Black Forest 1/2Kg</span>
+                                <span>₹400.00</span>
+                            </div>
+                        </div>
+                        <hr style="border-color: var(--border-color); margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 1.5rem;">
+                            <span>Total Due:</span>
+                            <span style="color: var(--success);">₹420.00 (incl. GST)</span>
+                        </div>
+                        <button style="width: 100%; padding: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Print Receipt & Checkout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.module-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "@cc-erp/database",
+  "version": "1.0.0",
+  "private": true,
+  "prisma": {
+    "seed": "tsx src/seed/index.ts"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.1",
+    "@types/bcrypt": "^5.0.2",
+    "bcrypt": "^5.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "prisma": "^6.2.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.3"
+  }
+}

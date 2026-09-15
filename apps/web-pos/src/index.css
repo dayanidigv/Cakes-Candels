@@ -1,0 +1,196 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+/* ─── POS Design Tokens ──────────────────────────────────────────────────── */
+:root {
+  --font-pos: 'Outfit', sans-serif;
+
+  /* Brand */
+  --color-primary: #ED3269;       /* Bright Bakery Pink */
+  --color-primary-hover: #D4285A; 
+  --color-gold: #d97706;          
+  --color-success: #10b981;       
+  --color-warning: #f59e0b;       
+  --color-danger: #ef4444;        
+  --color-info: #3b82f6;
+
+  /* POS Light Theme */
+  --bg-app: #FFFDFD;              /* Very light pink/off-white background */
+  --bg-panel: #FFFFFF;            /* Pure white panels */
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FFF5F7;       /* Very light pink on hover */
+  --bg-input: #FFFFFF;
+
+  /* Text */
+  --text-primary: #1E293B;        /* Dark Slate */
+  --text-secondary: #64748B;      /* Slate-500 */
+  --text-muted: #94A3B8;          /* Slate-400 */
+
+  /* Borders */
+  --border: #F1F5F9;              /* Slate-100 */
+  --border-focus: #ED3269;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.03);
+  --shadow-md: 0 4px 12px rgba(237,50,105,0.08); /* Pink-tinted shadow */
+  --shadow-lg: 0 10px 24px rgba(237,50,105,0.12);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  /* POS specific */
+  --product-card-size: 130px;     
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  font-family: var(--font-pos);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* POS is fullscreen */
+}
+
+/* ─── Scrollbars ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── Buttons ────────────────────────────────────────────────────────────── */
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  font-family: var(--font-pos);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-primary:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-success {
+  background: var(--color-success);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  font-family: var(--font-pos);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-success:hover { filter: brightness(1.1); }
+.btn-success:active { transform: scale(0.97); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-family: var(--font-pos);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-ghost:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* ─── Inputs ─────────────────────────────────────────────────────────────── */
+input, select, textarea {
+  font-family: var(--font-pos);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+  width: 100%;
+}
+input:focus, select:focus { border-color: var(--color-primary); }
+
+/* ─── Status Badges ──────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.badge-success { background: rgba(16,185,129,0.15); color: #34d399; }
+.badge-warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.badge-danger  { background: rgba(239,68,68,0.15);  color: #f87171; }
+.badge-info    { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.badge-gold    { background: rgba(217,119,6,0.15);  color: #fbbf24; }
+.badge-rose    { background: rgba(244,63,94,0.15);  color: #fb7185; }
+
+/* ─── Material Symbols ───────────────────────────────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
+  vertical-align: middle;
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.fade-in { animation: fadeIn 0.2s ease; }
+.slide-up { animation: slideUp 0.25s ease; }
+
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ─── Toast Container ────────────────────────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  min-width: 300px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.25s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.toast-success { border-left-color: var(--color-success); }
+.toast-error   { border-left-color: var(--color-danger); }
+.toast-warning { border-left-color: var(--color-warning); }

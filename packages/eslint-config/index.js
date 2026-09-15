@@ -1,0 +1,15 @@
+module.exports = {
+  extends: ["eslint:recommended"],
+  parserOptions: {
+    ecmaVersion: 2022,
+    sourceType: "module",
+  },
+  env: {
+    node: true,
+    es6: true,
+  },
+  rules: {
+    "no-unused-vars": "warn",
+    "no-console": "off"
+  }
+};

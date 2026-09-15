@@ -1,0 +1,110 @@
+.header {
+  background-color: var(--color-bg-main);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  z-index: 100;
+}
+
+.header-top {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 0.4rem 0;
+}
+
+.header-top .container {
+  height: 30px;
+}
+
+.text-sm {
+  font-size: 0.85rem;
+}
+
+.gap-xs {
+  gap: 0.25rem;
+}
+
+.gap-sm {
+  gap: 0.5rem;
+}
+
+.gap-md {
+  gap: 1rem;
+}
+
+.header-main {
+  height: 90px;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--color-primary);
+}
+
+.logo-text {
+  font-family: var(--font-cursive);
+  font-size: 2rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.logo-subtext {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-links a {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text-main);
+  padding: 0.5rem 0;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-links a:hover, .nav-links a.active {
+  color: var(--color-primary);
+}
+
+.icon-btn {
+  color: var(--color-text-main);
+  transition: color 0.2s ease;
+  padding: 0.5rem;
+}
+
+.icon-btn:hover {
+  color: var(--color-primary);
+}
+
+.cart-btn {
+  position: relative;
+}
+
+.cart-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: bold;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  transform: translate(25%, -25%);
+}
+
+.login-btn {
+  padding: 0.6rem 1.2rem;
+}

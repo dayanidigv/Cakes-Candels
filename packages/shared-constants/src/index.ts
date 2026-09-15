@@ -1,0 +1,36 @@
+export enum LocationType {
+  FACTORY = 'FACTORY',
+  RETAIL_BRANCH = 'RETAIL_BRANCH',
+  TRANSIT_HUB = 'TRANSIT_HUB'
+}
+
+export enum RoleType {
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  FACTORY_MANAGER = 'FACTORY_MANAGER',
+  BRANCH_MANAGER = 'BRANCH_MANAGER',
+  POS_OPERATOR = 'POS_OPERATOR',
+  LOGISTICS_COORDINATOR = 'LOGISTICS_COORDINATOR'
+}
+
+export enum PaymentMode {
+  CASH = 'CASH',
+  UPI = 'UPI',
+  CARD = 'CARD',
+  POINTS = 'POINTS'
+}
+
+export enum FeatureFlags {
+  CUSTOM_CAKE = 'CUSTOM_CAKE',
+  CRM = 'CRM',
+  LOYALTY = 'LOYALTY',
+  FINANCE = 'FINANCE'
+}
+
+export enum AuditAction {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE',
+  LOGIN = 'LOGIN',
+  LOGOUT = 'LOGOUT',
+  EXPIRE = 'EXPIRE'
+}

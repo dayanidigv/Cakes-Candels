@@ -1,0 +1,12 @@
+{
+  "extends": "../../packages/tsconfig/react.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

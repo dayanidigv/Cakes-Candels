@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Inter', sans-serif;
+  
+  /* Light Theme Surfaces (Main Content) */
+  --bg-app: #f4f7f6;          /* Light gray background matching image */
+  --bg-surface: #ffffff;      /* white */
+  --bg-surface-hover: #f9fafb; /* gray-50 */
+  --bg-header: #ffffff;
+  
+  /* Dark Sidebar Surfaces (Hybrid Theme) */
+  --bg-sidebar: #1e293b;      /* Slate 800 */
+  --bg-sidebar-hover: #334155;/* Slate 700 */
+  --bg-sidebar-active: #312e81;/* Indigo 900 (from image) */
+  --color-sidebar-text: #94a3b8; /* Slate 400 */
+  --color-sidebar-active-text: #ffffff;
+  --color-sidebar-border: #0f172a; /* Slate 900 */
+  
+  /* Brand / Accents */
+  --color-primary: #4f46e5;       /* Indigo 600 */
+  --color-primary-hover: #4338ca; /* Indigo 700 */
+  --color-accent: #2563eb;        /* Blue 600 */
+  --color-success: #10b981;       /* Emerald */
+  --color-success-bg: #d1fae5;    /* Emerald 100 */
+  --color-danger: #ef4444;        /* Red */
+  --color-warning: #f59e0b;       /* Amber */
+  
+  /* Typography */
+  --color-text-primary: #111827;  /* gray-900 */
+  --color-text-secondary: #4b5563;/* gray-600 */
+  --color-text-muted: #9ca3af;    /* gray-400 */
+  
+  /* Borders */
+  --color-border: #e5e7eb;        /* gray-200 */
+  --color-border-dark: #d1d5db;   /* gray-300 */
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Classical Panel / Card classes replacing glassmorphism */
+.glass-panel, .glass-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  border-radius: 8px;
+  padding: 24px;
+  transition: all 0.2s ease-in-out;
+}
+
+.glass-card {
+  padding: 16px;
+}
+
+.glass-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Base button and input styling */
+button, input, select, textarea {
+  font-family: var(--font-sans);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+

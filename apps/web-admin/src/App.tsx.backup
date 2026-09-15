@@ -1,0 +1,2027 @@
+import { useState, useEffect } from 'react';
+
+const API_BASE = 'http://localhost:3000/api';
+const DEV_TOKEN = 'CC-Dev-Token-2026';
+
+interface Organization {
+  id: string;
+  name: string;
+  taxIdentifier?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface Branch {
+  id: string;
+  organizationId: string;
+  organization?: Organization;
+  name: string;
+  type: 'FACTORY' | 'RETAIL_BRANCH' | 'TRANSIT_HUB';
+  address: string;
+  phone?: string;
+  gstin?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface POSRegister {
+  id: string;
+  branchId: string;
+  branch?: Branch;
+  name: string;
+  deviceIdentifier: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface Permission {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  type: 'SUPER_ADMIN' | 'FACTORY_MANAGER' | 'BRANCH_MANAGER' | 'POS_OPERATOR' | 'LOGISTICS_COORDINATOR';
+  description?: string;
+  isActive: boolean;
+  rolePermissions: { permission: Permission }[];
+}
+
+interface SystemSetting {
+  id: string;
+  key: string;
+  value: string;
+  description?: string;
+}
+
+interface BranchSetting {
+  id: string;
+  branchId: string;
+  branch?: Branch;
+  key: string;
+  value: string;
+}
+
+interface FeatureFlag {
+  id: string;
+  branchId?: string;
+  key: string;
+  isEnabled: boolean;
+}
+
+interface AuditLog {
+  id: string;
+  module: string;
+  entity: string;
+  entityId: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'EXPIRE';
+  performedBy: string;
+  branchId: string;
+  ip?: string;
+  device?: string;
+  before?: any;
+  after?: any;
+  timestamp: string;
+}
+
+
+interface TaxRule { id: string; name: string; rate: number; isActive: boolean; }
+interface Uom { id: string; name: string; symbol: string; isActive: boolean; }
+interface Category { id: string; name: string; description?: string; isActive: boolean; }
+interface Brand { id: string; name: string; description?: string; isActive: boolean; }
+interface Supplier { id: string; name: string; contactPerson?: string; email?: string; phone?: string; address?: string; taxId?: string; isActive: boolean; }
+interface StorageLocation { id: string; branchId: string; name: string; description?: string; isActive: boolean; branch?: Branch; }
+
+function App() {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'organizations' | 'branches' | 'registers' | 'roles' | 'settings' | 'flags' | 'taxes' | 'uoms' | 'categories' | 'brands' | 'suppliers' | 'storage'>('dashboard');
+  
+  // Data State
+  const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [registers, setRegisters] = useState<POSRegister[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [systemSettings, setSystemSettings] = useState<SystemSetting[]>([]);
+  const [branchSettings, setBranchSettings] = useState<BranchSetting[]>([]);
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  
+  // Loading & Error States
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+
+  const [taxes, setTaxes] = useState<TaxRule[]>([]);
+  const [uoms, setUoms] = useState<Uom[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [storageLocations, setStorageLocations] = useState<StorageLocation[]>([]);
+
+  const [taxForm, setTaxForm] = useState({ name: '', rate: 0 });
+  const [uomForm, setUomForm] = useState({ name: '', symbol: '' });
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
+  const [brandForm, setBrandForm] = useState({ name: '', description: '' });
+  const [supplierForm, setSupplierForm] = useState({ name: '', contactPerson: '', email: '', phone: '', address: '', taxId: '' });
+  const [storageForm, setStorageForm] = useState({ branchId: '', name: '', description: '' });
+
+  const [editingTaxId, setEditingTaxId] = useState<string | null>(null);
+  const [editingUomId, setEditingUomId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingBrandId, setEditingBrandId] = useState<string | null>(null);
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
+  const [editingStorageId, setEditingStorageId] = useState<string | null>(null);
+
+  // Forms State
+  const [orgForm, setOrgForm] = useState({ id: '', name: '', taxIdentifier: '' });
+  const [branchForm, setBranchForm] = useState({ id: '', organizationId: '', name: '', type: 'RETAIL_BRANCH', address: '', phone: '', gstin: '' });
+  const [registerForm, setRegisterForm] = useState({ id: '', branchId: '', name: '', deviceIdentifier: '' });
+  const [roleForm, setRoleForm] = useState<{ id: string; name: string; type: Role['type']; description: string; permissionIds: string[] }>({
+    id: '', name: '', type: 'POS_OPERATOR', description: '', permissionIds: []
+  });
+  const [settingForm, setSettingForm] = useState({ key: '', value: '', description: '', branchId: '' });
+  const [flagForm, setFlagForm] = useState({ key: '', isEnabled: false, branchId: '' });
+
+  // Mode helpers
+  const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
+  const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
+  const [editingRegisterId, setEditingRegisterId] = useState<string | null>(null);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+
+  const apiRequest = async (path: string, method = 'GET', body?: any) => {
+    try {
+      const response = await fetch(`${API_BASE}${path}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Dev-Token': DEV_TOKEN
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'API request failed');
+      }
+      return data.data;
+    } catch (err: any) {
+      console.error(err);
+      throw err;
+    }
+  };
+
+  const loadAllData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [
+        fetchedOrgs,
+        fetchedBranches,
+        fetchedRegisters,
+        fetchedRoles,
+        fetchedPermissions,
+        fetchedSettings,
+        fetchedFlags,
+        fetchedAudit,
+        fetchedTaxes,
+        fetchedUoms,
+        fetchedCategories,
+        fetchedBrands,
+        fetchedSuppliers,
+        fetchedStorageLocations
+      ] = await Promise.all([
+        apiRequest('/organizations'),
+        apiRequest('/branches'),
+        apiRequest('/pos-registers'),
+        apiRequest('/roles'),
+        apiRequest('/permissions'),
+        apiRequest('/settings'),
+        apiRequest('/feature-flags'),
+        apiRequest('/audit-logs?limit=50'),
+        apiRequest('/masters/taxes'),
+        apiRequest('/masters/uom'),
+        apiRequest('/masters/categories'),
+        apiRequest('/masters/brands'),
+        apiRequest('/masters/suppliers'),
+        apiRequest('/masters/storage-locations')
+      ]);
+
+      setOrgs(fetchedOrgs || []);
+      setBranches(fetchedBranches || []);
+      setRegisters(fetchedRegisters || []);
+      setRoles(fetchedRoles || []);
+      setPermissions(fetchedPermissions || []);
+      setSystemSettings(fetchedSettings?.systemSettings || []);
+      setBranchSettings(fetchedSettings?.branchSettings || []);
+      setFeatureFlags(fetchedFlags || []);
+      setAuditLogs(fetchedAudit || []);
+      setTaxes(fetchedTaxes?.items || []);
+      setUoms(fetchedUoms?.items || []);
+      setCategories(fetchedCategories?.items || []);
+      setBrands(fetchedBrands?.items || []);
+      setSuppliers(fetchedSuppliers?.items || []);
+      setStorageLocations(fetchedStorageLocations?.items || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch database information');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const triggerAlert = (message: string, isError = false) => {
+    if (isError) {
+      setError(message);
+      setSuccessMsg(null);
+    } else {
+      setSuccessMsg(message);
+      setError(null);
+    }
+    setTimeout(() => {
+      setError(null);
+      setSuccessMsg(null);
+    }, 5000);
+  };
+
+  // Organizations CRUD Handlers
+  const handleOrgSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingOrgId) {
+        await apiRequest(`/organizations/${editingOrgId}`, 'PATCH', {
+          name: orgForm.name,
+          taxIdentifier: orgForm.taxIdentifier
+        });
+        triggerAlert('Organization updated successfully!');
+      } else {
+        await apiRequest('/organizations', 'POST', {
+          name: orgForm.name,
+          taxIdentifier: orgForm.taxIdentifier
+        });
+        triggerAlert('Organization created successfully!');
+      }
+      setOrgForm({ id: '', name: '', taxIdentifier: '' });
+      setEditingOrgId(null);
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message || 'Error processing organization', true);
+    }
+  };
+
+  const handleOrgDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to deactivate/delete this organization?')) return;
+    try {
+      await apiRequest(`/organizations/${id}`, 'DELETE');
+      triggerAlert('Organization deactivated/deleted successfully!');
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message, true);
+    }
+  };
+
+  // Branches CRUD Handlers
+  const handleBranchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingBranchId) {
+        await apiRequest(`/branches/${editingBranchId}`, 'PATCH', {
+          organizationId: branchForm.organizationId,
+          name: branchForm.name,
+          type: branchForm.type,
+          address: branchForm.address,
+          phone: branchForm.phone,
+          gstin: branchForm.gstin
+        });
+        triggerAlert('Branch updated successfully!');
+      } else {
+        await apiRequest('/branches', 'POST', {
+          organizationId: branchForm.organizationId,
+          name: branchForm.name,
+          type: branchForm.type,
+          address: branchForm.address,
+          phone: branchForm.phone,
+          gstin: branchForm.gstin
+        });
+        triggerAlert('Branch created successfully!');
+      }
+      setBranchForm({ id: '', organizationId: '', name: '', type: 'RETAIL_BRANCH', address: '', phone: '', gstin: '' });
+      setEditingBranchId(null);
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message || 'Error processing branch', true);
+    }
+  };
+
+  const handleBranchDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to deactivate/delete this branch?')) return;
+    try {
+      await apiRequest(`/branches/${id}`, 'DELETE');
+      triggerAlert('Branch deactivated/deleted successfully!');
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message, true);
+    }
+  };
+
+  // POS Registers CRUD Handlers
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingRegisterId) {
+        await apiRequest(`/pos-registers/${editingRegisterId}`, 'PATCH', {
+          branchId: registerForm.branchId,
+          name: registerForm.name,
+          deviceIdentifier: registerForm.deviceIdentifier
+        });
+        triggerAlert('POS Register updated successfully!');
+      } else {
+        await apiRequest('/pos-registers', 'POST', {
+          branchId: registerForm.branchId,
+          name: registerForm.name,
+          deviceIdentifier: registerForm.deviceIdentifier
+        });
+        triggerAlert('POS Register created successfully!');
+      }
+      setRegisterForm({ id: '', branchId: '', name: '', deviceIdentifier: '' });
+      setEditingRegisterId(null);
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message || 'Error processing POS Register', true);
+    }
+  };
+
+  const handleRegisterDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this POS register?')) return;
+    try {
+      await apiRequest(`/pos-registers/${id}`, 'DELETE');
+      triggerAlert('POS Register deleted successfully!');
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message, true);
+    }
+  };
+
+  // Roles & Permissions Handlers
+  const handleRoleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingRoleId) {
+        await apiRequest(`/roles/${editingRoleId}`, 'PATCH', {
+          name: roleForm.name,
+          type: roleForm.type,
+          description: roleForm.description,
+          permissionIds: roleForm.permissionIds
+        });
+        triggerAlert('Role updated successfully!');
+      } else {
+        await apiRequest('/roles', 'POST', {
+          name: roleForm.name,
+          type: roleForm.type,
+          description: roleForm.description,
+          permissionIds: roleForm.permissionIds
+        });
+        triggerAlert('Role created successfully!');
+      }
+      setRoleForm({ id: '', name: '', type: 'POS_OPERATOR', description: '', permissionIds: [] });
+      setEditingRoleId(null);
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message || 'Error processing Role', true);
+    }
+  };
+
+  const handleRoleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this Role?')) return;
+    try {
+      await apiRequest(`/roles/${id}`, 'DELETE');
+      triggerAlert('Role deleted successfully!');
+      loadAllData();
+    } catch (err: any) {
+      // Custom display for deletion block
+      triggerAlert(err.message || 'Deletion blocked. Role might be assigned to users.', true);
+    }
+  };
+
+  const handleRolePermissionToggle = (permissionId: string) => {
+    setRoleForm(prev => {
+      const isChecked = prev.permissionIds.includes(permissionId);
+      const newPermissions = isChecked
+        ? prev.permissionIds.filter(id => id !== permissionId)
+        : [...prev.permissionIds, permissionId];
+      return { ...prev, permissionIds: newPermissions };
+    });
+  };
+
+  // Settings Handlers
+  const handleSettingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiRequest('/settings', 'POST', {
+        key: settingForm.key,
+        value: settingForm.value,
+        description: settingForm.description || undefined,
+        branchId: settingForm.branchId || undefined
+      });
+      triggerAlert('Setting saved successfully!');
+      setSettingForm({ key: '', value: '', description: '', branchId: '' });
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message || 'Error saving setting', true);
+    }
+  };
+
+
+
+
+  const createDeleteHandler = (endpoint: string, name: string) => async (id: string) => {
+    if (!confirm(`Are you sure you want to deactivate/delete this ${name}?`)) return;
+    try {
+      await apiRequest(`/${endpoint}/${id}`, 'DELETE');
+      triggerAlert(`${name} deactivated/deleted successfully!`);
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message, true);
+    }
+  };
+
+  const handleTaxSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = { name: taxForm.name, rate: Number(taxForm.rate) };
+      if (editingTaxId) await apiRequest(`/masters/taxes/${editingTaxId}`, 'PATCH', payload);
+      else await apiRequest(`/masters/taxes`, 'POST', payload);
+      triggerAlert('Tax Rule saved!');
+      setTaxForm({ name: '', rate: 0 });
+      setEditingTaxId(null);
+      loadAllData();
+    } catch (err: any) { triggerAlert(err.message, true); }
+  };
+  const handleTaxDelete = createDeleteHandler('masters/taxes', 'Tax Rule');
+
+  const handleUomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingUomId) await apiRequest(`/masters/uom/${editingUomId}`, 'PATCH', uomForm);
+      else await apiRequest(`/masters/uom`, 'POST', uomForm);
+      triggerAlert('UOM saved!');
+      setUomForm({ name: '', symbol: '' });
+      setEditingUomId(null);
+      loadAllData();
+    } catch (err: any) { triggerAlert(err.message, true); }
+  };
+  const handleUomDelete = createDeleteHandler('masters/uom', 'UOM');
+
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingCategoryId) await apiRequest(`/masters/categories/${editingCategoryId}`, 'PATCH', categoryForm);
+      else await apiRequest(`/masters/categories`, 'POST', categoryForm);
+      triggerAlert('Category saved!');
+      setCategoryForm({ name: '', description: '' });
+      setEditingCategoryId(null);
+      loadAllData();
+    } catch (err: any) { triggerAlert(err.message, true); }
+  };
+  const handleCategoryDelete = createDeleteHandler('masters/categories', 'Category');
+
+  const handleBrandSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingBrandId) await apiRequest(`/masters/brands/${editingBrandId}`, 'PATCH', brandForm);
+      else await apiRequest(`/masters/brands`, 'POST', brandForm);
+      triggerAlert('Brand saved!');
+      setBrandForm({ name: '', description: '' });
+      setEditingBrandId(null);
+      loadAllData();
+    } catch (err: any) { triggerAlert(err.message, true); }
+  };
+  const handleBrandDelete = createDeleteHandler('masters/brands', 'Brand');
+
+  const handleSupplierSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingSupplierId) await apiRequest(`/masters/suppliers/${editingSupplierId}`, 'PATCH', supplierForm);
+      else await apiRequest(`/masters/suppliers`, 'POST', supplierForm);
+      triggerAlert('Supplier saved!');
+      setSupplierForm({ name: '', contactPerson: '', email: '', phone: '', address: '', taxId: '' });
+      setEditingSupplierId(null);
+      loadAllData();
+    } catch (err: any) { triggerAlert(err.message, true); }
+  };
+  const handleSupplierDelete = createDeleteHandler('masters/suppliers', 'Supplier');
+
+  const handleStorageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingStorageId) await apiRequest(`/masters/storage-locations/${editingStorageId}`, 'PATCH', storageForm);
+      else await apiRequest(`/masters/storage-locations`, 'POST', storageForm);
+      triggerAlert('Storage Location saved!');
+      setStorageForm({ branchId: '', name: '', description: '' });
+      setEditingStorageId(null);
+      loadAllData();
+    } catch (err: any) { triggerAlert(err.message, true); }
+  };
+  const handleStorageDelete = createDeleteHandler('masters/storage-locations', 'Storage Location');
+
+  // Feature Flag Handlers
+  const handleFlagSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiRequest('/feature-flags', 'POST', {
+        key: flagForm.key,
+        isEnabled: flagForm.isEnabled,
+        branchId: flagForm.branchId || undefined
+      });
+      triggerAlert('Feature Flag toggled successfully!');
+      setFlagForm({ key: '', isEnabled: false, branchId: '' });
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message || 'Error toggling Feature Flag', true);
+    }
+  };
+
+  const toggleFlagStatusDirectly = async (flag: FeatureFlag) => {
+    try {
+      await apiRequest('/feature-flags', 'POST', {
+        key: flag.key,
+        isEnabled: !flag.isEnabled,
+        branchId: flag.branchId || undefined
+      });
+      triggerAlert(`Feature flag ${flag.key} updated!`);
+      loadAllData();
+    } catch (err: any) {
+      triggerAlert(err.message, true);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <style>{
+        `input, select {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--color-border);
+          border-radius: 8px;
+          padding: 10px 14px;
+          color: #fff;
+          outline: none;
+          width: 100%;
+          box-sizing: border-box;
+          margin-top: 5px;
+        }
+        label {
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .btn-primary {
+          background: var(--color-primary);
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          padding: 11px 24px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          font-size: 14px;
+        }
+        th { padding: 12px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.08); }
+        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        td button {
+          background: transparent;
+          border: 1px solid var(--color-primary);
+          color: var(--color-primary-hover);
+          border-radius: 4px;
+          padding: 4px 8px;
+          cursor: pointer;
+          margin-right: 8px;
+        }`
+      }</style>
+
+      {/* Sidebar Navigation */}
+      <aside style={{
+        width: '300px',
+        background: 'rgba(15, 10, 36, 0.9)',
+        borderRight: '1px solid var(--color-border)',
+        padding: '30px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '30px',
+        backdropFilter: 'blur(20px)'
+      }}>
+        <div>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 800,
+            background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '5px'
+          }}>Cakes & Candles</h1>
+          <div style={{
+            fontSize: '11px',
+            color: 'var(--color-text-secondary)',
+            letterSpacing: '1px',
+            textTransform: 'uppercase'
+          }}>Enterprise Portal</div>
+        </div>
+
+        {/* Security Notice */}
+        <div style={{
+          background: 'rgba(139, 92, 246, 0.1)',
+          padding: '12px',
+          borderRadius: '8px',
+          border: '1px dashed var(--color-primary)',
+          fontSize: '12px'
+        }}>
+          <span style={{ fontWeight: 'bold', color: 'var(--color-primary-hover)' }}>Dev Mode Active</span>
+          <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--color-text-secondary)', fontFamily: 'monospace' }}>
+            X-Dev-Token applied
+          </div>
+        </div>
+
+        {/* Nav Links */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {[
+            { id: 'dashboard', label: 'Dashboard & Audits', icon: '📊' },
+            { id: 'organizations', label: 'Organizations', icon: '🏢' },
+            { id: 'branches', label: 'Branches & Factories', icon: '🏭' },
+            { id: 'registers', label: 'POS Registers', icon: '💻' },
+            { id: 'roles', label: 'Roles & Permissions', icon: '🛡️' },
+            { id: 'settings', label: 'System Settings', icon: '⚙️' },
+            { id: 'flags', label: 'Feature Flags', icon: '🏳️' },
+            { id: 'taxes', label: 'Tax Rules', icon: '💰' },
+            { id: 'uoms', label: 'Units of Measure', icon: '⚖️' },
+            { id: 'categories', label: 'Categories', icon: '📂' },
+            { id: 'brands', label: 'Brands', icon: '🏷️' },
+            { id: 'suppliers', label: 'Suppliers', icon: '🚚' },
+            { id: 'storage', label: 'Storage Locations', icon: '🏬' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                background: activeTab === tab.id ? 'var(--color-primary)' : 'transparent',
+                color: activeTab === tab.id ? '#fff' : 'var(--color-text-secondary)',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '14px',
+                fontWeight: 600,
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        <div style={{ marginTop: 'auto', textAlign: 'center' }}>
+          <button 
+            onClick={loadAllData} 
+            disabled={loading}
+            style={{
+              padding: '10px 20px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--color-border)',
+              color: '#fff',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              width: '100%'
+            }}
+          >
+            {loading ? 'Refreshing...' : '🔄 Sync Database'}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main style={{ flex: 1, padding: '40px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '30px' }}>
+        {/* Global Feedback Banner */}
+        {error && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '1px solid var(--color-danger)',
+            color: '#fca5a5',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            fontWeight: 500,
+            fontSize: '14px'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {successMsg && (
+          <div style={{
+            background: 'rgba(16, 185, 129, 0.15)',
+            border: '1px solid var(--color-success)',
+            color: '#a7f3d0',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            fontWeight: 500,
+            fontSize: '14px'
+          }}>
+            ✅ {successMsg}
+          </div>
+        )}
+
+        {/* Tab Components */}
+        {activeTab === 'dashboard' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2>Dashboard & Platform Telemetry</h2>
+                <p style={{ color: 'var(--color-text-secondary)', marginTop: '4px' }}>Overview of active configurations and live database transaction audit logs.</p>
+              </div>
+            </div>
+
+            {/* Micro Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+              <div className="glass-card">
+                <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>Organizations</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--color-primary-hover)' }}>{orgs.length}</div>
+              </div>
+              <div className="glass-card">
+                <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>Branches / Factories</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--color-accent)' }}>{branches.length}</div>
+              </div>
+              <div className="glass-card">
+                <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>Active Registers</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--color-success)' }}>{registers.length}</div>
+              </div>
+              <div className="glass-card">
+                <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>Configured Roles</div>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--color-warning)' }}>{roles.length}</div>
+              </div>
+            </div>
+
+            {/* Audit Logs Section */}
+            <div>
+              <h3 style={{ marginBottom: '15px' }}>Live Database Change Audits (Mutations)</h3>
+              <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <th style={{ padding: '12px' }}>Timestamp</th>
+                      <th style={{ padding: '12px' }}>Module</th>
+                      <th style={{ padding: '12px' }}>Entity</th>
+                      <th style={{ padding: '12px' }}>Action</th>
+                      <th style={{ padding: '12px' }}>Performed By</th>
+                      <th style={{ padding: '12px' }}>Change Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                          No audit logs recorded yet. Trigger a POST, PATCH, or DELETE operation to generate logs.
+                        </td>
+                      </tr>
+                    ) : (
+                      auditLogs.map(log => (
+                        <tr key={log.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '12px', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                            {new Date(log.timestamp).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '12px' }}>{log.module}</td>
+                          <td style={{ padding: '12px', fontWeight: 'bold' }}>{log.entity}</td>
+                          <td style={{ padding: '12px' }}>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              background: log.action === 'CREATE' ? 'rgba(16, 185, 129, 0.2)' : log.action === 'UPDATE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                              color: log.action === 'CREATE' ? 'var(--color-success)' : log.action === 'UPDATE' ? 'var(--color-warning)' : 'var(--color-danger)'
+                            }}>{log.action}</span>
+                          </td>
+                          <td style={{ padding: '12px', fontSize: '12px', fontFamily: 'monospace' }}>{log.performedBy}</td>
+                          <td style={{ padding: '12px', fontSize: '12px' }}>
+                            <pre style={{
+                              background: 'rgba(0,0,0,0.2)',
+                              padding: '6px',
+                              borderRadius: '4px',
+                              margin: 0,
+                              whiteSpace: 'pre-wrap',
+                              fontFamily: 'monospace',
+                              maxWidth: '400px',
+                              overflowX: 'auto'
+                            }}>
+                              {log.before && <div>Before: {JSON.stringify(log.before)}</div>}
+                              {log.after && <div>After: {JSON.stringify(log.after)}</div>}
+                              {!log.before && !log.after && <span>Entity ID: {log.entityId}</span>}
+                            </pre>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'organizations' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <div>
+              <h2>Organizations</h2>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '4px' }}>System master settings for tenant organizations.</p>
+            </div>
+
+            {/* Org Create Form */}
+            <form onSubmit={handleOrgSubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Organization Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={orgForm.name}
+                  onChange={e => setOrgForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="e.g. Cakes & Candles Headquarters"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Tax Identifier / GSTIN (HQ)</label>
+                <input
+                  type="text"
+                  value={orgForm.taxIdentifier}
+                  onChange={e => setOrgForm(prev => ({ ...prev, taxIdentifier: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="e.g. 33AAAAA1111A1Z1"
+                />
+              </div>
+
+              <button type="submit" style={{
+                background: 'var(--color-primary)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '11px 24px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}>
+                {editingOrgId ? 'Update' : 'Create Organization'}
+              </button>
+
+              {editingOrgId && (
+                <button type="button" onClick={() => {
+                  setEditingOrgId(null);
+                  setOrgForm({ id: '', name: '', taxIdentifier: '' });
+                }} style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--color-border)',
+                  color: '#fff',
+                  borderRadius: '8px',
+                  padding: '11px 20px',
+                  cursor: 'pointer'
+                }}>
+                  Cancel
+                </button>
+              )}
+            </form>
+
+            {/* List */}
+            <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <th style={{ padding: '12px' }}>Name</th>
+                    <th style={{ padding: '12px' }}>Tax Identifier</th>
+                    <th style={{ padding: '12px' }}>Status</th>
+                    <th style={{ padding: '12px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orgs.map(org => (
+                    <tr key={org.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{org.name}</td>
+                      <td style={{ padding: '12px' }}>{org.taxIdentifier || '-'}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          background: org.isActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                          color: org.isActive ? 'var(--color-success)' : 'var(--color-danger)'
+                        }}>{org.isActive ? 'Active' : 'Inactive'}</span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              setEditingOrgId(org.id);
+                              setOrgForm({ id: org.id, name: org.name, taxIdentifier: org.taxIdentifier || '' });
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--color-primary)',
+                              color: 'var(--color-primary-hover)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >Edit</button>
+                          <button
+                            onClick={() => handleOrgDelete(org.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--color-danger)',
+                              color: 'var(--color-danger)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >Deactivate</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'branches' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <div>
+              <h2>Branches & Factories</h2>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '4px' }}>Configure production factories, transit hubs, and retail branch outlets.</p>
+            </div>
+
+            {/* Branch Form */}
+            <form onSubmit={handleBranchSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Organization *</label>
+                <select
+                  required
+                  value={branchForm.organizationId}
+                  onChange={e => setBranchForm(prev => ({ ...prev, organizationId: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="" style={{ background: 'var(--bg-primary)' }}>Select Organization</option>
+                  {orgs.map(org => (
+                    <option key={org.id} value={org.id} style={{ background: 'var(--bg-primary)' }}>{org.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Branch Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={branchForm.name}
+                  onChange={e => setBranchForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="e.g. Central Factory"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Branch Type *</label>
+                <select
+                  required
+                  value={branchForm.type}
+                  onChange={e => setBranchForm(prev => ({ ...prev, type: e.target.value as any }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="FACTORY" style={{ background: 'var(--bg-primary)' }}>Factory (Production)</option>
+                  <option value="RETAIL_BRANCH" style={{ background: 'var(--bg-primary)' }}>Retail Branch (POS)</option>
+                  <option value="TRANSIT_HUB" style={{ background: 'var(--bg-primary)' }}>Transit Hub</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', gridColumn: 'span 3' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Address *</label>
+                <input
+                  type="text"
+                  required
+                  value={branchForm.address}
+                  onChange={e => setBranchForm(prev => ({ ...prev, address: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="Street details..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Phone</label>
+                <input
+                  type="text"
+                  value={branchForm.phone}
+                  onChange={e => setBranchForm(prev => ({ ...prev, phone: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="+91..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Branch GSTIN</label>
+                <input
+                  type="text"
+                  value={branchForm.gstin}
+                  onChange={e => setBranchForm(prev => ({ ...prev, gstin: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="Gst identification number..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', justifyContent: 'flex-end', gridColumn: 'span 3' }}>
+                {editingBranchId && (
+                  <button type="button" onClick={() => {
+                    setEditingBranchId(null);
+                    setBranchForm({ id: '', organizationId: '', name: '', type: 'RETAIL_BRANCH', address: '', phone: '', gstin: '' });
+                  }} style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '11px 20px',
+                    cursor: 'pointer'
+                  }}>
+                    Cancel
+                  </button>
+                )}
+                <button type="submit" style={{
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '11px 24px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}>
+                  {editingBranchId ? 'Update Branch' : 'Create Branch'}
+                </button>
+              </div>
+            </form>
+
+            {/* List */}
+            <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <th style={{ padding: '12px' }}>Name</th>
+                    <th style={{ padding: '12px' }}>Type</th>
+                    <th style={{ padding: '12px' }}>Organization</th>
+                    <th style={{ padding: '12px' }}>GSTIN</th>
+                    <th style={{ padding: '12px' }}>Status</th>
+                    <th style={{ padding: '12px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {branches.map(branch => (
+                    <tr key={branch.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{branch.name}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          background: branch.type === 'FACTORY' ? 'rgba(139, 92, 246, 0.2)' : branch.type === 'RETAIL_BRANCH' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255,255,255,0.1)',
+                          color: branch.type === 'FACTORY' ? 'var(--color-primary-hover)' : branch.type === 'RETAIL_BRANCH' ? 'var(--color-accent)' : '#fff'
+                        }}>{branch.type}</span>
+                      </td>
+                      <td style={{ padding: '12px' }}>{branch.organization?.name || branch.organizationId}</td>
+                      <td style={{ padding: '12px' }}>{branch.gstin || '-'}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          background: branch.isActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                          color: branch.isActive ? 'var(--color-success)' : 'var(--color-danger)'
+                        }}>{branch.isActive ? 'Active' : 'Inactive'}</span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              setEditingBranchId(branch.id);
+                              setBranchForm({
+                                id: branch.id,
+                                organizationId: branch.organizationId,
+                                name: branch.name,
+                                type: branch.type,
+                                address: branch.address,
+                                phone: branch.phone || '',
+                                gstin: branch.gstin || ''
+                              });
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--color-primary)',
+                              color: 'var(--color-primary-hover)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >Edit</button>
+                          <button
+                            onClick={() => handleBranchDelete(branch.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--color-danger)',
+                              color: 'var(--color-danger)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >Deactivate</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'registers' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <div>
+              <h2>POS Register Locations</h2>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '4px' }}>Assign physical checkout registers to retail store branch terminals.</p>
+            </div>
+
+            {/* POS Register Form */}
+            <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Branch Outlet *</label>
+                <select
+                  required
+                  value={registerForm.branchId}
+                  onChange={e => setRegisterForm(prev => ({ ...prev, branchId: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="" style={{ background: 'var(--bg-primary)' }}>Select Branch</option>
+                  {branches.filter(b => b.type === 'RETAIL_BRANCH').map(b => (
+                    <option key={b.id} value={b.id} style={{ background: 'var(--bg-primary)' }}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Register Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={registerForm.name}
+                  onChange={e => setRegisterForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="e.g. Register 1 - Front Counter"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Device MAC / Unique ID *</label>
+                <input
+                  type="text"
+                  required
+                  value={registerForm.deviceIdentifier}
+                  onChange={e => setRegisterForm(prev => ({ ...prev, deviceIdentifier: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="e.g. 00:1A:2B:3C:4D:5E"
+                />
+              </div>
+
+              <button type="submit" style={{
+                background: 'var(--color-primary)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '11px 24px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}>
+                {editingRegisterId ? 'Update' : 'Create Register'}
+              </button>
+
+              {editingRegisterId && (
+                <button type="button" onClick={() => {
+                  setEditingRegisterId(null);
+                  setRegisterForm({ id: '', branchId: '', name: '', deviceIdentifier: '' });
+                }} style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--color-border)',
+                  color: '#fff',
+                  borderRadius: '8px',
+                  padding: '11px 20px',
+                  cursor: 'pointer'
+                }}>
+                  Cancel
+                </button>
+              )}
+            </form>
+
+            {/* List */}
+            <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <th style={{ padding: '12px' }}>Register Name</th>
+                    <th style={{ padding: '12px' }}>Branch Outlet</th>
+                    <th style={{ padding: '12px' }}>Device Identifier</th>
+                    <th style={{ padding: '12px' }}>Status</th>
+                    <th style={{ padding: '12px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {registers.map(reg => (
+                    <tr key={reg.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{reg.name}</td>
+                      <td style={{ padding: '12px' }}>{reg.branch?.name || reg.branchId}</td>
+                      <td style={{ padding: '12px', fontFamily: 'monospace' }}>{reg.deviceIdentifier}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          background: reg.isActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                          color: reg.isActive ? 'var(--color-success)' : 'var(--color-danger)'
+                        }}>{reg.isActive ? 'Active' : 'Inactive'}</span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              setEditingRegisterId(reg.id);
+                              setRegisterForm({ id: reg.id, branchId: reg.branchId, name: reg.name, deviceIdentifier: reg.deviceIdentifier });
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--color-primary)',
+                              color: 'var(--color-primary-hover)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >Edit</button>
+                          <button
+                            onClick={() => handleRegisterDelete(reg.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--color-danger)',
+                              color: 'var(--color-danger)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'roles' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <div>
+              <h2>Roles & Permissions Matrix</h2>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '4px' }}>Manage user role groups and map them to system operation permissions.</p>
+            </div>
+
+            {/* Role Form */}
+            <form onSubmit={handleRoleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Role Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={roleForm.name}
+                    onChange={e => setRoleForm(prev => ({ ...prev, name: e.target.value }))}
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: '#fff',
+                      outline: 'none'
+                    }}
+                    placeholder="e.g. COUNTER_CASHIER"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Role Template Type *</label>
+                  <select
+                    required
+                    value={roleForm.type}
+                    onChange={e => setRoleForm(prev => ({ ...prev, type: e.target.value as any }))}
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: '#fff',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="SUPER_ADMIN" style={{ background: 'var(--bg-primary)' }}>Super Admin</option>
+                    <option value="FACTORY_MANAGER" style={{ background: 'var(--bg-primary)' }}>Factory Manager</option>
+                    <option value="BRANCH_MANAGER" style={{ background: 'var(--bg-primary)' }}>Branch Manager</option>
+                    <option value="POS_OPERATOR" style={{ background: 'var(--bg-primary)' }}>POS Operator</option>
+                    <option value="LOGISTICS_COORDINATOR" style={{ background: 'var(--bg-primary)' }}>Logistics Coordinator</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Description</label>
+                <input
+                  type="text"
+                  value={roleForm.description}
+                  onChange={e => setRoleForm(prev => ({ ...prev, description: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="Summary of access level rights..."
+                />
+              </div>
+
+              {/* Permissions Selection Matrix */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Assign Permissions</label>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: '10px',
+                  background: 'rgba(0,0,0,0.15)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}>
+                  {permissions.map(p => (
+                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                      <input
+                        type="checkbox"
+                        checked={roleForm.permissionIds.includes(p.id)}
+                        onChange={() => handleRolePermissionToggle(p.id)}
+                        style={{ accentColor: 'var(--color-primary)' }}
+                      />
+                      <span title={p.description}>{p.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                {editingRoleId && (
+                  <button type="button" onClick={() => {
+                    setEditingRoleId(null);
+                    setRoleForm({ id: '', name: '', type: 'POS_OPERATOR', description: '', permissionIds: [] });
+                  }} style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '11px 20px',
+                    cursor: 'pointer'
+                  }}>
+                    Cancel
+                  </button>
+                )}
+                <button type="submit" style={{
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '11px 24px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}>
+                  {editingRoleId ? 'Update Role' : 'Create Role'}
+                </button>
+              </div>
+            </form>
+
+            {/* List */}
+            <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <th style={{ padding: '12px' }}>Role Group</th>
+                    <th style={{ padding: '12px' }}>Template Type</th>
+                    <th style={{ padding: '12px' }}>Description</th>
+                    <th style={{ padding: '12px' }}>Assigned Permissions</th>
+                    <th style={{ padding: '12px' }}>Status</th>
+                    <th style={{ padding: '12px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roles.map(role => (
+                    <tr key={role.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{role.name}</td>
+                      <td style={{ padding: '12px', fontSize: '12px' }}>{role.type}</td>
+                      <td style={{ padding: '12px' }}>{role.description || '-'}</td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {role.rolePermissions.map(rp => (
+                            <span key={rp.permission.id} style={{
+                              background: 'rgba(139, 92, 246, 0.1)',
+                              border: '1px solid rgba(139, 92, 246, 0.2)',
+                              color: 'var(--color-primary-hover)',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '11px'
+                            }}>{rp.permission.name}</span>
+                          ))}
+                          {role.rolePermissions.length === 0 && <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>None</span>}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          background: role.isActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                          color: role.isActive ? 'var(--color-success)' : 'var(--color-danger)'
+                        }}>{role.isActive ? 'Active' : 'Inactive'}</span>
+                      </td>
+                      <td style={{ padding: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              setEditingRoleId(role.id);
+                              setRoleForm({
+                                id: role.id,
+                                name: role.name,
+                                type: role.type,
+                                description: role.description || '',
+                                permissionIds: role.rolePermissions.map(rp => rp.permission.id)
+                              });
+                            }}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--color-primary)',
+                              color: 'var(--color-primary-hover)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >Edit</button>
+                          <button
+                            onClick={() => handleRoleDelete(role.id)}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid var(--color-danger)',
+                              color: 'var(--color-danger)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <div>
+              <h2>System Settings Configuration</h2>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '4px' }}>Adjust global operational settings and branch-specific parameters (e.g. GST rates, billing details).</p>
+            </div>
+
+            {/* Create/Upsert Setting Form */}
+            <form onSubmit={handleSettingSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Setting Key *</label>
+                <input
+                  type="text"
+                  required
+                  value={settingForm.key}
+                  onChange={e => setSettingForm(prev => ({ ...prev, key: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="e.g. tax.gst_rate"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Setting Value *</label>
+                <input
+                  type="text"
+                  required
+                  value={settingForm.value}
+                  onChange={e => setSettingForm(prev => ({ ...prev, value: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="e.g. 18.0"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Scope (Leave blank for global System Setting)</label>
+                <select
+                  value={settingForm.branchId}
+                  onChange={e => setSettingForm(prev => ({ ...prev, branchId: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="" style={{ background: 'var(--bg-primary)' }}>System-wide (Global)</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id} style={{ background: 'var(--bg-primary)' }}>{b.name} (Branch)</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Description (System Setting only)</label>
+                <input
+                  type="text"
+                  value={settingForm.description}
+                  onChange={e => setSettingForm(prev => ({ ...prev, description: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="What is this configuration for?"
+                />
+              </div>
+
+              <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" style={{
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '11px 24px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}>
+                  Save Setting
+                </button>
+              </div>
+            </form>
+
+            {/* List System Settings */}
+            <div>
+              <h3 style={{ marginBottom: '15px' }}>Global System Settings</h3>
+              <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', marginBottom: '20px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <th style={{ padding: '12px' }}>Setting Key</th>
+                      <th style={{ padding: '12px' }}>Setting Value</th>
+                      <th style={{ padding: '12px' }}>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {systemSettings.map(s => (
+                      <tr key={s.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold', fontFamily: 'monospace' }}>{s.key}</td>
+                        <td style={{ padding: '12px', color: 'var(--color-accent)', fontWeight: 'bold' }}>{s.value}</td>
+                        <td style={{ padding: '12px' }}>{s.description || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* List Branch Settings */}
+            <div>
+              <h3 style={{ marginBottom: '15px' }}>Branch Specific Override Settings</h3>
+              <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <th style={{ padding: '12px' }}>Branch</th>
+                      <th style={{ padding: '12px' }}>Setting Key</th>
+                      <th style={{ padding: '12px' }}>Override Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {branchSettings.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                          No branch-specific overrides set.
+                        </td>
+                      </tr>
+                    ) : (
+                      branchSettings.map(bSetting => (
+                        <tr key={bSetting.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '12px', fontWeight: 'bold' }}>{bSetting.branch?.name || bSetting.branchId}</td>
+                          <td style={{ padding: '12px', fontFamily: 'monospace' }}>{bSetting.key}</td>
+                          <td style={{ padding: '12px', color: 'var(--color-primary-hover)', fontWeight: 'bold' }}>{bSetting.value}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'flags' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <div>
+              <h2>Feature Flags Dashboard</h2>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '4px' }}>Enable or disable system features (like Custom Cake builder or Loyalty point integrations) dynamically.</p>
+            </div>
+
+            {/* Toggle Form */}
+            <form onSubmit={handleFlagSubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Feature Key *</label>
+                <input
+                  type="text"
+                  required
+                  value={flagForm.key}
+                  onChange={e => setFlagForm(prev => ({ ...prev, key: e.target.value.toUpperCase() }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                  placeholder="e.g. CUSTOM_CAKE"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <label style={{ fontSize: '13px', fontWeight: 600 }}>Target Branch (Global system-wide if blank)</label>
+                <select
+                  value={flagForm.branchId}
+                  onChange={e => setFlagForm(prev => ({ ...prev, branchId: e.target.value }))}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    color: '#fff',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="" style={{ background: 'var(--bg-primary)' }}>System-wide (Global)</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id} style={{ background: 'var(--bg-primary)' }}>{b.name} (Branch)</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={flagForm.isEnabled}
+                    onChange={e => setFlagForm(prev => ({ ...prev, isEnabled: e.target.checked }))}
+                    style={{ accentColor: 'var(--color-primary)' }}
+                  />
+                  <span>Is Enabled</span>
+                </label>
+              </div>
+
+              <button type="submit" style={{
+                background: 'var(--color-primary)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '11px 24px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}>
+                Apply Flag Status
+              </button>
+            </form>
+
+            {/* List */}
+            <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <th style={{ padding: '12px' }}>Feature Key</th>
+                    <th style={{ padding: '12px' }}>Scope</th>
+                    <th style={{ padding: '12px' }}>Status</th>
+                    <th style={{ padding: '12px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {featureFlags.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                        No feature flags defined. Register one to control application logic.
+                      </td>
+                    </tr>
+                  ) : (
+                    featureFlags.map(flag => {
+                      const matchedBranch = branches.find(b => b.id === flag.branchId);
+                      return (
+                        <tr key={flag.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td style={{ padding: '12px', fontWeight: 'bold', fontFamily: 'monospace' }}>{flag.key}</td>
+                          <td style={{ padding: '12px' }}>
+                            {flag.branchId ? `Branch: ${matchedBranch?.name || flag.branchId}` : 'Global System'}
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              background: flag.isEnabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                              color: flag.isEnabled ? 'var(--color-success)' : 'var(--color-danger)'
+                            }}>{flag.isEnabled ? 'Enabled' : 'Disabled'}</span>
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <button
+                              onClick={() => toggleFlagStatusDirectly(flag)}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid var(--color-primary)',
+                                color: 'var(--color-primary-hover)',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Toggle Status
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Master Data Tabs */}
+        {activeTab === 'taxes' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <h2>Tax Rules</h2>
+            <form onSubmit={handleTaxSubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ flex: 1 }}><label>Name</label><input type="text" required value={taxForm.name} onChange={e=>setTaxForm({...taxForm, name: e.target.value})} /></div>
+              <div style={{ flex: 1 }}><label>Rate (%)</label><input type="number" step="0.01" required value={taxForm.rate} onChange={e=>setTaxForm({...taxForm, rate: Number(e.target.value)})} /></div>
+              <button type="submit" className="btn-primary">{editingTaxId ? 'Update' : 'Create'}</button>
+            </form>
+            <table>
+              <thead><tr><th>Name</th><th>Rate</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{taxes.map(t => (
+                <tr key={t.id}><td>{t.name}</td><td>{t.rate}%</td><td>{t.isActive ? 'Active' : 'Inactive'}</td><td>
+                  <button onClick={() => { setEditingTaxId(t.id); setTaxForm({name: t.name, rate: t.rate}); }}>Edit</button>
+                  <button onClick={() => handleTaxDelete(t.id)}>Delete</button>
+                </td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+        
+        {activeTab === 'uoms' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <h2>Units of Measure</h2>
+            <form onSubmit={handleUomSubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ flex: 1 }}><label>Name</label><input type="text" required value={uomForm.name} onChange={e=>setUomForm({...uomForm, name: e.target.value})} /></div>
+              <div style={{ flex: 1 }}><label>Symbol</label><input type="text" required value={uomForm.symbol} onChange={e=>setUomForm({...uomForm, symbol: e.target.value})} /></div>
+              <button type="submit" className="btn-primary">{editingUomId ? 'Update' : 'Create'}</button>
+            </form>
+            <table>
+              <thead><tr><th>Name</th><th>Symbol</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{uoms.map(t => (
+                <tr key={t.id}><td>{t.name}</td><td>{t.symbol}</td><td>{t.isActive ? 'Active' : 'Inactive'}</td><td>
+                  <button onClick={() => { setEditingUomId(t.id); setUomForm({name: t.name, symbol: t.symbol}); }}>Edit</button>
+                  <button onClick={() => handleUomDelete(t.id)}>Delete</button>
+                </td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'categories' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <h2>Categories</h2>
+            <form onSubmit={handleCategorySubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ flex: 1 }}><label>Name</label><input type="text" required value={categoryForm.name} onChange={e=>setCategoryForm({...categoryForm, name: e.target.value})} /></div>
+              <div style={{ flex: 1 }}><label>Description</label><input type="text" value={categoryForm.description} onChange={e=>setCategoryForm({...categoryForm, description: e.target.value})} /></div>
+              <button type="submit" className="btn-primary">{editingCategoryId ? 'Update' : 'Create'}</button>
+            </form>
+            <table>
+              <thead><tr><th>Name</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{categories.map(t => (
+                <tr key={t.id}><td>{t.name}</td><td>{t.description}</td><td>{t.isActive ? 'Active' : 'Inactive'}</td><td>
+                  <button onClick={() => { setEditingCategoryId(t.id); setCategoryForm({name: t.name, description: t.description||''}); }}>Edit</button>
+                  <button onClick={() => handleCategoryDelete(t.id)}>Delete</button>
+                </td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'brands' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <h2>Brands</h2>
+            <form onSubmit={handleBrandSubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ flex: 1 }}><label>Name</label><input type="text" required value={brandForm.name} onChange={e=>setBrandForm({...brandForm, name: e.target.value})} /></div>
+              <div style={{ flex: 1 }}><label>Description</label><input type="text" value={brandForm.description} onChange={e=>setBrandForm({...brandForm, description: e.target.value})} /></div>
+              <button type="submit" className="btn-primary">{editingBrandId ? 'Update' : 'Create'}</button>
+            </form>
+            <table>
+              <thead><tr><th>Name</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{brands.map(t => (
+                <tr key={t.id}><td>{t.name}</td><td>{t.description}</td><td>{t.isActive ? 'Active' : 'Inactive'}</td><td>
+                  <button onClick={() => { setEditingBrandId(t.id); setBrandForm({name: t.name, description: t.description||''}); }}>Edit</button>
+                  <button onClick={() => handleBrandDelete(t.id)}>Delete</button>
+                </td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'suppliers' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <h2>Suppliers</h2>
+            <form onSubmit={handleSupplierSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div><label>Name</label><input type="text" required value={supplierForm.name} onChange={e=>setSupplierForm({...supplierForm, name: e.target.value})} /></div>
+              <div><label>Contact Person</label><input type="text" value={supplierForm.contactPerson} onChange={e=>setSupplierForm({...supplierForm, contactPerson: e.target.value})} /></div>
+              <div><label>Email</label><input type="email" value={supplierForm.email} onChange={e=>setSupplierForm({...supplierForm, email: e.target.value})} /></div>
+              <div><label>Phone</label><input type="text" value={supplierForm.phone} onChange={e=>setSupplierForm({...supplierForm, phone: e.target.value})} /></div>
+              <div><label>Tax ID</label><input type="text" value={supplierForm.taxId} onChange={e=>setSupplierForm({...supplierForm, taxId: e.target.value})} /></div>
+              <button type="submit" className="btn-primary">{editingSupplierId ? 'Update' : 'Create'}</button>
+            </form>
+            <table>
+              <thead><tr><th>Name</th><th>Contact</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{suppliers.map(t => (
+                <tr key={t.id}><td>{t.name}</td><td>{t.contactPerson}</td><td>{t.phone}</td><td>{t.isActive ? 'Active' : 'Inactive'}</td><td>
+                  <button onClick={() => { setEditingSupplierId(t.id); setSupplierForm({name: t.name, contactPerson: t.contactPerson||'', email: t.email||'', phone: t.phone||'', address: t.address||'', taxId: t.taxId||''}); }}>Edit</button>
+                  <button onClick={() => handleSupplierDelete(t.id)}>Delete</button>
+                </td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'storage' && (
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <h2>Storage Locations</h2>
+            <form onSubmit={handleStorageSubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px' }}>
+              <div style={{ flex: 1 }}><label>Branch</label>
+                <select required value={storageForm.branchId} onChange={e=>setStorageForm({...storageForm, branchId: e.target.value})}>
+                  <option value="">Select Branch</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}><label>Name</label><input type="text" required value={storageForm.name} onChange={e=>setStorageForm({...storageForm, name: e.target.value})} /></div>
+              <button type="submit" className="btn-primary">{editingStorageId ? 'Update' : 'Create'}</button>
+            </form>
+            <table>
+              <thead><tr><th>Branch</th><th>Name</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{storageLocations.map(t => (
+                <tr key={t.id}><td>{t.branch?.name}</td><td>{t.name}</td><td>{t.description}</td><td>{t.isActive ? 'Active' : 'Inactive'}</td><td>
+                  <button onClick={() => { setEditingStorageId(t.id); setStorageForm({branchId: t.branchId, name: t.name, description: t.description||''}); }}>Edit</button>
+                  <button onClick={() => handleStorageDelete(t.id)}>Delete</button>
+                </td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+
+      </main>
+    </div>
+  );
+}
+
+export default App;
