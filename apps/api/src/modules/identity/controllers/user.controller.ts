@@ -44,12 +44,14 @@ export class UserController {
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '20',
-    @Query('branchId') branchId?: string
+    @Query('branchId') branchId?: string,
+    @CurrentUser() user?: any
   ) {
     return this.userService.findAll({
       page: Number(page),
       limit: Number(limit),
       branchId,
+      organizationId: user?.organizationId,
     });
   }
 

@@ -7,12 +7,12 @@ import { UpdatePOSRegisterDto } from '../dto/update-pos-register.dto';
 export class POSRegisterService {
   private readonly posRegisterRepository = new POSRegisterRepository();
 
-  async findAll(): Promise<any> {
-    return this.posRegisterRepository.findAll();
+  async findAll(organizationId: string): Promise<any> {
+    return this.posRegisterRepository.findAll(organizationId);
   }
 
-  async findOne(id: string): Promise<any> {
-    const register = await this.posRegisterRepository.findById(id);
+  async findOne(id: string, organizationId: string): Promise<any> {
+    const register = await this.posRegisterRepository.findById(id, organizationId);
     if (!register) {
       throw new NotFoundException('POS Register not found');
     }
@@ -23,13 +23,13 @@ export class POSRegisterService {
     return this.posRegisterRepository.create(dto);
   }
 
-  async update(id: string, dto: UpdatePOSRegisterDto): Promise<any> {
-    await this.findOne(id);
+  async update(id: string, organizationId: string, dto: UpdatePOSRegisterDto): Promise<any> {
+    await this.findOne(id, organizationId);
     return this.posRegisterRepository.update(id, dto);
   }
 
-  async remove(id: string): Promise<any> {
-    await this.findOne(id);
+  async remove(id: string, organizationId: string): Promise<any> {
+    await this.findOne(id, organizationId);
     return this.posRegisterRepository.delete(id);
   }
 }

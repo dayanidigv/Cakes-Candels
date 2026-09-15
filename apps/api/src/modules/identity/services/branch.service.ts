@@ -7,12 +7,12 @@ import { UpdateBranchDto } from '../dto/update-branch.dto';
 export class BranchService {
   private readonly branchRepository = new BranchRepository();
 
-  async findAll(): Promise<any> {
-    return this.branchRepository.findAll();
+  async findAll(organizationId: string): Promise<any> {
+    return this.branchRepository.findAll(organizationId);
   }
 
-  async findOne(id: string): Promise<any> {
-    const branch = await this.branchRepository.findById(id);
+  async findOne(id: string, organizationId: string): Promise<any> {
+    const branch = await this.branchRepository.findById(id, organizationId);
     if (!branch) {
       throw new NotFoundException('Branch not found');
     }
@@ -23,13 +23,13 @@ export class BranchService {
     return this.branchRepository.create(dto);
   }
 
-  async update(id: string, dto: UpdateBranchDto): Promise<any> {
-    await this.findOne(id);
+  async update(id: string, organizationId: string, dto: UpdateBranchDto): Promise<any> {
+    await this.findOne(id, organizationId);
     return this.branchRepository.update(id, dto);
   }
 
-  async remove(id: string): Promise<any> {
-    await this.findOne(id);
+  async remove(id: string, organizationId: string): Promise<any> {
+    await this.findOne(id, organizationId);
     return this.branchRepository.delete(id);
   }
 }

@@ -5,17 +5,17 @@ export type BranchWithOrg = Prisma.BranchGetPayload<{
 }>;
 
 export class BranchRepository {
-  async findAll(): Promise<BranchWithOrg[]> {
+  async findAll(organizationId: string): Promise<BranchWithOrg[]> {
     return prisma.branch.findMany({
-      where: { deletedAt: null },
+      where: { organizationId, deletedAt: null },
       include: { organization: true },
       orderBy: { createdAt: 'desc' }
     });
   }
 
-  async findById(id: string): Promise<BranchWithOrg | null> {
+  async findById(id: string, organizationId: string): Promise<BranchWithOrg | null> {
     return prisma.branch.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, organizationId, deletedAt: null },
       include: { organization: true }
     });
   }

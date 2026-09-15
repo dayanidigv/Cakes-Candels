@@ -16,6 +16,7 @@ jest.mock('@cc-erp/database', () => ({
 
 describe('POSRegisterService', () => {
   let service: POSRegisterService;
+  const orgId = 'org-1';
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -30,36 +31,35 @@ describe('POSRegisterService', () => {
     expect(service).toBeDefined();
   });
 
+  // NOTE: POSRegisterService/POSRegisterRepository is pure CRUD only — this file has no
+  // register open/close or shift-tie-in logic (that lives elsewhere, e.g. PosShift under
+  // the sales module).
+
   describe('findAll', () => {
-    it('should return all registers', async () => {
+    it('should scope the repository call to the caller organization', async () => {
       mockPOSRegisterRepository.findAll.mockResolvedValue([{ id: 'reg-1', branchId: 'branch-1' }]);
 
-      const result = await service.findAll();
+      const result = await service.findAll(orgId);
 
+      expect(mockPOSRegisterRepository.findAll).toHaveBeenCalledWith(orgId);
       expect(result).toEqual([{ id: 'reg-1', branchId: 'branch-1' }]);
-
-      // NOTE: POSRegisterService/POSRegisterRepository is pure CRUD only — this file has no
-      // register open/close or shift-tie-in logic (that lives elsewhere, e.g. PosShift under
-      // the sales module). It also has no branchId/organizationId scoping at all: findAll()
-      // returns every register across every branch and organization
-      // (packages/database/src/repositories/pos-register.repository.ts has no where clause).
-      // Same class of cross-tenant gap as BranchRepository — flagged for review, not fixed
-      // here since it needs the caller's branch/organization context threaded through.
     });
   });
 
   describe('findOne', () => {
-    it('should throw NotFoundException when the register does not exist', async () => {
+    it('should throw NotFoundException when the register does not exist in the caller organization', async () => {
       mockPOSRegisterRepository.findById.mockResolvedValue(null);
 
-      await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing', orgId)).rejects.toThrow(NotFoundException);
+      expect(mockPOSRegisterRepository.findById).toHaveBeenCalledWith('missing', orgId);
     });
 
-    it('should return the register when found', async () => {
+    it('should return the register when found in the caller organization', async () => {
       mockPOSRegisterRepository.findById.mockResolvedValue({ id: 'reg-1', name: 'Register 1' });
 
-      const result = await service.findOne('reg-1');
+      const result = await service.findOne('reg-1', orgId);
 
+      expect(mockPOSRegisterRepository.findById).toHaveBeenCalledWith('reg-1', orgId);
       expect(result).toEqual({ id: 'reg-1', name: 'Register 1' });
     });
   });
@@ -77,21 +77,22 @@ describe('POSRegisterService', () => {
   });
 
   describe('update', () => {
-    it('should throw NotFoundException when the register does not exist', async () => {
+    it('should throw NotFoundException when the register does not exist in the caller organization', async () => {
       mockPOSRegisterRepository.findById.mockResolvedValue(null);
 
-      await expect(service.update('missing', { name: 'X' } as any)).rejects.toThrow(
+      await expect(service.update('missing', orgId, { name: 'X' } as any)).rejects.toThrow(
         NotFoundException
       );
       expect(mockPOSRegisterRepository.update).not.toHaveBeenCalled();
     });
 
-    it('should update the register when it exists', async () => {
+    it('should update the register when it exists in the caller organization', async () => {
       mockPOSRegisterRepository.findById.mockResolvedValue({ id: 'reg-1' });
       mockPOSRegisterRepository.update.mockResolvedValue({ id: 'reg-1', name: 'Renamed Register' });
 
-      const result = await service.update('reg-1', { name: 'Renamed Register' } as any);
+      const result = await service.update('reg-1', orgId, { name: 'Renamed Register' } as any);
 
+      expect(mockPOSRegisterRepository.findById).toHaveBeenCalledWith('reg-1', orgId);
       expect(mockPOSRegisterRepository.update).toHaveBeenCalledWith('reg-1', {
         name: 'Renamed Register',
       });
@@ -100,19 +101,20 @@ describe('POSRegisterService', () => {
   });
 
   describe('remove', () => {
-    it('should throw NotFoundException when the register does not exist', async () => {
+    it('should throw NotFoundException when the register does not exist in the caller organization', async () => {
       mockPOSRegisterRepository.findById.mockResolvedValue(null);
 
-      await expect(service.remove('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.remove('missing', orgId)).rejects.toThrow(NotFoundException);
       expect(mockPOSRegisterRepository.delete).not.toHaveBeenCalled();
     });
 
-    it('should delete the register when it exists', async () => {
+    it('should delete the register when it exists in the caller organization', async () => {
       mockPOSRegisterRepository.findById.mockResolvedValue({ id: 'reg-1' });
       mockPOSRegisterRepository.delete.mockResolvedValue({ id: 'reg-1' });
 
-      const result = await service.remove('reg-1');
+      const result = await service.remove('reg-1', orgId);
 
+      expect(mockPOSRegisterRepository.findById).toHaveBeenCalledWith('reg-1', orgId);
       expect(mockPOSRegisterRepository.delete).toHaveBeenCalledWith('reg-1');
       expect(result).toEqual({ id: 'reg-1' });
     });

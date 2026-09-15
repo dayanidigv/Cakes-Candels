@@ -16,6 +16,7 @@ jest.mock('@cc-erp/database', () => ({
 
 describe('BranchService', () => {
   let service: BranchService;
+  const orgId = 'org-1';
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -31,46 +32,37 @@ describe('BranchService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all branches', async () => {
-      mockBranchRepository.findAll.mockResolvedValue([
-        { id: 'branch-1', organizationId: 'org-1' },
-        { id: 'branch-2', organizationId: 'org-2' },
-      ]);
+    it('should scope the repository call to the caller organization', async () => {
+      mockBranchRepository.findAll.mockResolvedValue([{ id: 'branch-1', organizationId: orgId }]);
 
-      const result = await service.findAll();
+      const result = await service.findAll(orgId);
 
-      expect(result).toHaveLength(2);
-
-      // NOTE (tenant-scoping gap): BranchService.findAll() takes no organizationId argument,
-      // and BranchRepository.findAll() (packages/database/src/repositories/branch.repository.ts)
-      // queries `where: { deletedAt: null }` only — there is no organizationId filter, even
-      // though Branch.organizationId exists in the schema. As written, findAll() returns
-      // branches belonging to every organization. This is the same class of cross-tenant
-      // leak fixed previously in logistics.service.ts. Not fixed here (requires threading
-      // organizationId from the controller/auth context through the service and repository);
-      // flagged for review.
+      expect(mockBranchRepository.findAll).toHaveBeenCalledWith(orgId);
+      expect(result).toHaveLength(1);
     });
   });
 
   describe('findOne', () => {
-    it('should throw NotFoundException when the branch does not exist', async () => {
+    it('should throw NotFoundException when the branch does not exist in the caller organization', async () => {
       mockBranchRepository.findById.mockResolvedValue(null);
 
-      await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing', orgId)).rejects.toThrow(NotFoundException);
+      expect(mockBranchRepository.findById).toHaveBeenCalledWith('missing', orgId);
     });
 
-    it('should return the branch when found', async () => {
+    it('should return the branch when found in the caller organization', async () => {
       mockBranchRepository.findById.mockResolvedValue({ id: 'branch-1', name: 'Main Branch' });
 
-      const result = await service.findOne('branch-1');
+      const result = await service.findOne('branch-1', orgId);
 
+      expect(mockBranchRepository.findById).toHaveBeenCalledWith('branch-1', orgId);
       expect(result).toEqual({ id: 'branch-1', name: 'Main Branch' });
     });
   });
 
   describe('create', () => {
     it('should create the branch via the repository', async () => {
-      const dto = { organizationId: 'org-1', name: 'New Branch', type: 'RETAIL', address: 'Somewhere' };
+      const dto = { organizationId: orgId, name: 'New Branch', type: 'RETAIL', address: 'Somewhere' };
       mockBranchRepository.create.mockResolvedValue({ id: 'branch-3', ...dto });
 
       const result = await service.create(dto as any);
@@ -81,40 +73,42 @@ describe('BranchService', () => {
   });
 
   describe('update', () => {
-    it('should throw NotFoundException when the branch does not exist', async () => {
+    it('should throw NotFoundException when the branch does not exist in the caller organization', async () => {
       mockBranchRepository.findById.mockResolvedValue(null);
 
-      await expect(service.update('missing', { name: 'X' } as any)).rejects.toThrow(
+      await expect(service.update('missing', orgId, { name: 'X' } as any)).rejects.toThrow(
         NotFoundException
       );
       expect(mockBranchRepository.update).not.toHaveBeenCalled();
     });
 
-    it('should update the branch when it exists', async () => {
+    it('should update the branch when it exists in the caller organization', async () => {
       mockBranchRepository.findById.mockResolvedValue({ id: 'branch-1' });
       mockBranchRepository.update.mockResolvedValue({ id: 'branch-1', name: 'Renamed Branch' });
 
-      const result = await service.update('branch-1', { name: 'Renamed Branch' } as any);
+      const result = await service.update('branch-1', orgId, { name: 'Renamed Branch' } as any);
 
+      expect(mockBranchRepository.findById).toHaveBeenCalledWith('branch-1', orgId);
       expect(mockBranchRepository.update).toHaveBeenCalledWith('branch-1', { name: 'Renamed Branch' });
       expect(result).toEqual({ id: 'branch-1', name: 'Renamed Branch' });
     });
   });
 
   describe('remove', () => {
-    it('should throw NotFoundException when the branch does not exist', async () => {
+    it('should throw NotFoundException when the branch does not exist in the caller organization', async () => {
       mockBranchRepository.findById.mockResolvedValue(null);
 
-      await expect(service.remove('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.remove('missing', orgId)).rejects.toThrow(NotFoundException);
       expect(mockBranchRepository.delete).not.toHaveBeenCalled();
     });
 
-    it('should soft-delete the branch when it exists', async () => {
+    it('should soft-delete the branch when it exists in the caller organization', async () => {
       mockBranchRepository.findById.mockResolvedValue({ id: 'branch-1' });
       mockBranchRepository.delete.mockResolvedValue({ id: 'branch-1', isActive: false });
 
-      const result = await service.remove('branch-1');
+      const result = await service.remove('branch-1', orgId);
 
+      expect(mockBranchRepository.findById).toHaveBeenCalledWith('branch-1', orgId);
       expect(mockBranchRepository.delete).toHaveBeenCalledWith('branch-1');
       expect(result).toEqual({ id: 'branch-1', isActive: false });
     });

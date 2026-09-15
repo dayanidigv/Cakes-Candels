@@ -5,16 +5,17 @@ export type POSRegisterWithBranch = Prisma.POSRegisterGetPayload<{
 }>;
 
 export class POSRegisterRepository {
-  async findAll(): Promise<POSRegisterWithBranch[]> {
+  async findAll(organizationId: string): Promise<POSRegisterWithBranch[]> {
     return prisma.pOSRegister.findMany({
+      where: { branch: { organizationId } },
       include: { branch: true },
       orderBy: { createdAt: 'desc' }
     });
   }
 
-  async findById(id: string): Promise<POSRegisterWithBranch | null> {
-    return prisma.pOSRegister.findUnique({
-      where: { id },
+  async findById(id: string, organizationId: string): Promise<POSRegisterWithBranch | null> {
+    return prisma.pOSRegister.findFirst({
+      where: { id, branch: { organizationId } },
       include: { branch: true }
     });
   }

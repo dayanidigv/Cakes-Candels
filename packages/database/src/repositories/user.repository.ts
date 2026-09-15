@@ -2,6 +2,7 @@ import { prisma, Prisma, User, UserStatus } from '../client/index';
 
 export type UserWithRoles = Prisma.UserGetPayload<{
   include: {
+    branch: true;
     userRoles: {
       include: {
         role: true;
@@ -54,6 +55,7 @@ export class UserRepository {
     return prisma.user.findUnique({
       where: { username },
       include: {
+        branch: true,
         userRoles: {
           include: { role: true }
         }
@@ -61,9 +63,15 @@ export class UserRepository {
     });
   }
 
-  async findAll(opts?: { skip?: number; take?: number; branchId?: string }): Promise<User[]> {
+  async findAll(opts?: { skip?: number; take?: number; branchId?: string; organizationId?: string }): Promise<User[]> {
     const where: Prisma.UserWhereInput = { deletedAt: null };
     if (opts?.branchId) where.branchId = opts.branchId;
+    if (opts?.organizationId) {
+      where.OR = [
+        { organizationId: opts.organizationId },
+        { branch: { organizationId: opts.organizationId } }
+      ];
+    }
     return prisma.user.findMany({
       where,
       include: {
@@ -76,9 +84,15 @@ export class UserRepository {
     }) as any;
   }
 
-  async count(branchId?: string) {
+  async count(branchId?: string, organizationId?: string) {
     const where: Prisma.UserWhereInput = { deletedAt: null };
     if (branchId) where.branchId = branchId;
+    if (organizationId) {
+      where.OR = [
+        { organizationId },
+        { branch: { organizationId } }
+      ];
+    }
     return prisma.user.count({ where });
   }
 

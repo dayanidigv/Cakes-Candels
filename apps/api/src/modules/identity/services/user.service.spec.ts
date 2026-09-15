@@ -61,30 +61,27 @@ describe('UserService', () => {
   });
 
   describe('findAll', () => {
-    it('should paginate and forward branchId as the only tenant filter', async () => {
+    it('should paginate and forward branchId and organizationId as tenant filters', async () => {
       mockUserRepository.findAll.mockResolvedValue([userWithRoles]);
       mockUserRepository.count.mockResolvedValue(1);
 
-      const result = await service.findAll({ page: 1, limit: 20, branchId: 'branch-1' });
+      const result = await service.findAll({
+        page: 1,
+        limit: 20,
+        branchId: 'branch-1',
+        organizationId: 'org-1',
+      });
 
       expect(mockUserRepository.findAll).toHaveBeenCalledWith({
         skip: 0,
         take: 20,
         branchId: 'branch-1',
+        organizationId: 'org-1',
       });
-      expect(mockUserRepository.count).toHaveBeenCalledWith('branch-1');
+      expect(mockUserRepository.count).toHaveBeenCalledWith('branch-1', 'org-1');
       expect(result).toEqual(
         expect.objectContaining({ items: [userWithRoles], total: 1, page: 1, limit: 20 })
       );
-
-      // NOTE (tenant-scoping gap): UserService.findAll()/UserRepository.findAll() accept only
-      // an optional branchId filter — there is no organizationId parameter or where-clause
-      // filter anywhere in this path (see packages/database/src/repositories/user.repository.ts).
-      // A caller that omits branchId (e.g. a GLOBAL-scope endpoint bug) would return users
-      // across every organization. Flagged for review; not fixed here since it requires
-      // threading organizationId through the controller/DTO as well.
-      const forwardedArgs = mockUserRepository.findAll.mock.calls[0][0];
-      expect(forwardedArgs.organizationId).toBeUndefined();
     });
 
     it('should cap the page size at 100', async () => {

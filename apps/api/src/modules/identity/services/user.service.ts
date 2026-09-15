@@ -23,14 +23,14 @@ export class UserService {
     @Inject(REDIS_CLIENT) private readonly redis: Redis
   ) {}
 
-  async findAll(opts?: { page?: number; limit?: number; branchId?: string }) {
+  async findAll(opts?: { page?: number; limit?: number; branchId?: string; organizationId?: string }) {
     const page = opts?.page ?? 1;
     const limit = Math.min(opts?.limit ?? 20, 100);
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
-      this.userRepository.findAll({ skip, take: limit, branchId: opts?.branchId }),
-      this.userRepository.count(opts?.branchId),
+      this.userRepository.findAll({ skip, take: limit, branchId: opts?.branchId, organizationId: opts?.organizationId }),
+      this.userRepository.count(opts?.branchId, opts?.organizationId),
     ]);
 
     return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
