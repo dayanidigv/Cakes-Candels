@@ -4,6 +4,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { NumberSeriesService } from '../masters/number-series/number-series.service';
 import * as crypto from 'crypto';
 import { AuthorizationContext } from '../../common/interfaces/authorization-context.interface';
+import { writeLogisticsAuditLog } from './utils/logistics-audit.helper';
 
 // Dispatch status flow — enforce forward-only state machine
 const STATUS_FLOW: DispatchStatus[] = ['PACKED', 'DISPATCHED', 'ON_THE_WAY', 'REACHED_BRANCH', 'RECEIVED'];
@@ -28,6 +29,7 @@ export class LogisticsService {
 
   async createDispatch(
     data: {
+      idempotencyKey?: string;
       vehicleId?: string;
       driverUserId?: string;
       fromBranchId: string;
@@ -121,15 +123,13 @@ export class LogisticsService {
       });
 
       // Write Audit Log
-      await tx.auditLog.create({
-        data: {
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-          action: 'CREATE',
-          entity: 'DISPATCH',
-          entityId: dispatch.id,
-          reason: 'Dispatch Created',
-        },
+      await writeLogisticsAuditLog(tx, {
+        entity: 'DISPATCH',
+        entityId: dispatch.id,
+        action: 'CREATE',
+        performedBy: ctx.userId,
+        branchId: data.fromBranchId,
+        after: { status: 'PACKED', reason: 'Dispatch Created' },
       });
 
       return dispatch;
@@ -190,15 +190,13 @@ export class LogisticsService {
         },
       });
 
-      await tx.auditLog.create({
-        data: {
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'DISPATCH',
-          entityId: dispatchId,
-          reason: 'Status changed to DISPATCHED',
-        },
+      await writeLogisticsAuditLog(tx, {
+        entity: 'DISPATCH',
+        entityId: dispatchId,
+        action: 'UPDATE',
+        performedBy: ctx.userId,
+        branchId: dispatch.fromBranchId,
+        after: { status: 'DISPATCHED', reason: 'Status changed to DISPATCHED' },
       });
 
       return tx.dispatch.findUnique({ where: { id: dispatchId }, include: { items: { include: { variant: { select: { name: true, sku: true } } } } } });
@@ -224,15 +222,13 @@ export class LogisticsService {
       });
       if (updated.count === 0) throw new BadRequestException('Concurrent update error');
 
-      await tx.auditLog.create({
-        data: {
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'DISPATCH',
-          entityId: dispatchId,
-          reason: 'Status changed to ON_THE_WAY',
-        },
+      await writeLogisticsAuditLog(tx, {
+        entity: 'DISPATCH',
+        entityId: dispatchId,
+        action: 'UPDATE',
+        performedBy: ctx.userId,
+        branchId: dispatch.fromBranchId,
+        after: { status: 'ON_THE_WAY', reason: 'Status changed to ON_THE_WAY' },
       });
 
       return tx.dispatch.findUnique({ where: { id: dispatchId } });
@@ -260,15 +256,13 @@ export class LogisticsService {
       });
       if (updated.count === 0) throw new BadRequestException('Concurrent update error');
 
-      await tx.auditLog.create({
-        data: {
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'DISPATCH',
-          entityId: dispatchId,
-          reason: 'Status changed to REACHED_BRANCH',
-        },
+      await writeLogisticsAuditLog(tx, {
+        entity: 'DISPATCH',
+        entityId: dispatchId,
+        action: 'UPDATE',
+        performedBy: ctx.userId,
+        branchId: dispatch.toBranchId,
+        after: { status: 'REACHED_BRANCH', reason: 'Status changed to REACHED_BRANCH' },
       });
 
       return tx.dispatch.findUnique({ where: { id: dispatchId } });
@@ -352,15 +346,13 @@ export class LogisticsService {
         },
       });
 
-      await tx.auditLog.create({
-        data: {
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'DISPATCH',
-          entityId: dispatchId,
-          reason: 'Status changed to RECEIVED (Items transferred in)',
-        },
+      await writeLogisticsAuditLog(tx, {
+        entity: 'DISPATCH',
+        entityId: dispatchId,
+        action: 'UPDATE',
+        performedBy: ctx.userId,
+        branchId: dispatch.toBranchId,
+        after: { status: 'RECEIVED', reason: 'Status changed to RECEIVED (Items transferred in)' },
       });
 
       return tx.dispatch.findUnique({ where: { id: dispatchId }, include: { items: { include: { variant: { select: { name: true, sku: true } } } } } });
@@ -392,15 +384,13 @@ export class LogisticsService {
         },
       });
 
-      await tx.auditLog.create({
-        data: {
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'DISPATCH',
-          entityId: dispatchId,
-          reason: `Dispatch Cancelled: ${reason}`,
-        },
+      await writeLogisticsAuditLog(tx, {
+        entity: 'DISPATCH',
+        entityId: dispatchId,
+        action: 'UPDATE',
+        performedBy: ctx.userId,
+        branchId: dispatch.fromBranchId,
+        after: { status: 'CANCELLED', reason: `Dispatch Cancelled: ${reason}` },
       });
 
       return updated;

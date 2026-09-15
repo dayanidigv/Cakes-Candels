@@ -9,6 +9,6 @@ allowBuilds:
   "@nestjs/core": true
   bcrypt: true
   esbuild: true
-  '@scarf/scarf': set this to true or false
-  '@parcel/watcher': set this to true or false
-  unrs-resolver: set this to true or false
+  '@scarf/scarf': true
+  '@parcel/watcher': true
+  unrs-resolver: true
