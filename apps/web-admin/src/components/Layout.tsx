@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logout } from '../services/authState';
 
 interface NavItem {
   id: string;
@@ -14,7 +15,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export const Layout = ({ children, activeTab, setActiveTab }: any) => {
+export const Layout = ({ children, activeTab, setActiveTab, user }: any) => {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
@@ -509,8 +510,8 @@ export const Layout = ({ children, activeTab, setActiveTab }: any) => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ position: 'relative' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#475569', overflow: 'hidden' }}>
-                    <img src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="Alex Chen" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#475569', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '13px', fontWeight: 600 }}>
+                    {(user?.name || '?').charAt(0).toUpperCase()}
                   </div>
                   <span
                     style={{
@@ -526,12 +527,12 @@ export const Layout = ({ children, activeTab, setActiveTab }: any) => {
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ color: 'var(--color-sidebar-active-text)', fontSize: '13px', fontWeight: 600 }}>Alex Chen</span>
-                  <span style={{ color: '#94a3b8', fontSize: '11px' }}>Super Admin</span>
+                  <span style={{ color: 'var(--color-sidebar-active-text)', fontSize: '13px', fontWeight: 600 }}>{user?.name || 'Unknown User'}</span>
+                  <span style={{ color: '#94a3b8', fontSize: '11px' }}>{user?.role || ''}</span>
                 </div>
               </div>
               <button
-                onClick={() => alert('Logged out')}
+                onClick={logout}
                 title="Logout"
                 style={{
                   background: 'rgba(255, 255, 255, 0.05)',
@@ -550,8 +551,8 @@ export const Layout = ({ children, activeTab, setActiveTab }: any) => {
             </div>
           ) : (
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#475569', overflow: 'hidden' }}>
-                <img src="https://i.pravatar.cc/150?u=a042581f4e29026024d" alt="Alex Chen" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#475569', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 600 }}>
+                {(user?.name || '?').charAt(0).toUpperCase()}
               </div>
             </div>
           )}

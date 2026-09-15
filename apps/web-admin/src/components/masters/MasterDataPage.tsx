@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api';
 import { DataTable } from '../DataTable';
+import { ErrorState } from '../common/ErrorState';
 
 export const MasterDataPage = ({ title, endpoint, columns, FormComponent, emptyFormState, triggerAlert }: any) => {
   const [data, setData] = useState([]);
@@ -8,16 +9,18 @@ export const MasterDataPage = ({ title, endpoint, columns, FormComponent, emptyF
   const [search, setSearch] = useState('');
   const [formState, setFormState] = useState(emptyFormState);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = async (page = pagination.page, searchTerm = search) => {
     try {
       const res = await apiRequest(`/${endpoint}?page=${page}&limit=${pagination.limit}&search=${searchTerm}`);
+      setError(null);
       if(res && res.items) {
         setData(res.items);
         setPagination({ page: res.page, limit: res.limit, total: res.total, totalPages: res.totalPages });
       }
     } catch (err: any) {
-      triggerAlert(err.message, true);
+      setError(err.message || `Failed to load ${title}`);
     }
   };
 
@@ -115,15 +118,19 @@ export const MasterDataPage = ({ title, endpoint, columns, FormComponent, emptyF
       </div>
       
       <FormComponent formState={formState} setFormState={setFormState} handleSubmit={handleSubmit} isEditing={!!editingId} setEditingId={setEditingId} emptyFormState={emptyFormState} />
-      
-      <DataTable 
-        columns={columns} 
-        data={data} 
-        onEdit={(row: any) => { setEditingId(row.id); setFormState(row); }}
-        onDelete={handleDelete}
-        pagination={pagination}
-        onPageChange={(page: number) => loadData(page)}
-      />
+
+      {error ? (
+        <ErrorState message={error} onRetry={() => loadData(1)} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={data}
+          onEdit={(row: any) => { setEditingId(row.id); setFormState(row); }}
+          onDelete={handleDelete}
+          pagination={pagination}
+          onPageChange={(page: number) => loadData(page)}
+        />
+      )}
     </div>
   );
 };

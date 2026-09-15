@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Layout } from './components/Layout';
+import { LoginPage } from './components/LoginPage';
+import { useAuth } from './hooks/useAuth';
 import Dashboard from './pages/Dashboard';
 import Organizations from './pages/Organizations';
 import Branches from './pages/Branches';
@@ -45,10 +47,15 @@ import Notifications from './pages/Notifications';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+  const { user } = useAuth();
+
   const triggerAlert = (message: string, isError = false) => {
     alert(message);
   };
+
+  if (!user) {
+    return <LoginPage />;
+  }
 
   const renderPage = () => {
     switch (activeTab) {
@@ -112,7 +119,7 @@ function App() {
         .btn-primary { background: var(--color-primary); color: var(--color-text-primary); border: none; border-radius: 8px; padding: 11px 24px; font-weight: 600; cursor: pointer; display: inline-block; text-align: center; }
         .btn-primary:hover { opacity: 0.9; }
       `}</style>
-      <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+      <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user}>
         {renderPage()}
       </Layout>
     </>
