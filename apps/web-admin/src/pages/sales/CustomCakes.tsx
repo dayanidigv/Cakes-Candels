@@ -3,17 +3,29 @@ import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api';
 
 const STATUS_COLORS = {
-  BOOKED: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
-  APPROVED: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+  DRAFT: { bg: 'rgba(100,116,139,0.15)', color: '#94a3b8' },
+  QUOTED: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+  ADVANCE_PENDING: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+  CONFIRMED: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+  SCHEDULED: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa' },
+  IN_PRODUCTION: { bg: 'rgba(245,158,11,0.15)', color: '#fbbf24' },
   BAKING: { bg: 'rgba(245,158,11,0.15)', color: '#fbbf24' },
-  DECORATING: { bg: 'rgba(217,119,6,0.15)', color: '#fbbf24' },
+  ICING: { bg: 'rgba(217,119,6,0.15)', color: '#fbbf24' },
+  DECORATION: { bg: 'rgba(217,119,6,0.15)', color: '#fbbf24' },
   QC: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+  QC_FAILED: { bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
   READY: { bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
+  DISPATCHED: { bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
   DELIVERED: { bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
+  COMPLETED: { bg: 'rgba(16,185,129,0.15)', color: '#34d399' },
   CANCELLED: { bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
+  REJECTED: { bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
 };
 
-const PIPELINE_STAGES = ['BOOKED', 'APPROVED', 'BAKING', 'DECORATING', 'QC', 'READY', 'DELIVERED'];
+const PIPELINE_STAGES = [
+  'QUOTED', 'ADVANCE_PENDING', 'CONFIRMED', 'SCHEDULED', 'IN_PRODUCTION',
+  'BAKING', 'ICING', 'DECORATION', 'QC', 'READY', 'DISPATCHED', 'DELIVERED', 'COMPLETED',
+];
 
 function StatusBadge({ status }) {
   const cfg = STATUS_COLORS[status] || { bg: 'rgba(100,116,139,0.15)', color: '#94a3b8' };
@@ -29,7 +41,7 @@ function BookingModal({ branches, onClose, onSuccess }) {
     customerName: '', mobileNumber: '', branchId: branches[0]?.id || '',
     cakeType: '1', flavor: '', weightKg: 1.0, eggless: false,
     creamType: '', specialInstructions: '', deliveryDatetime: '', deliveryType: 'PICKUP',
-    advancePayment: 0,
+    quoteAmount: 0, advancePayment: 0,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +53,7 @@ function BookingModal({ branches, onClose, onSuccess }) {
     setError('');
     setLoading(true);
     try {
-      await apiRequest('/custom-cakes', 'POST', { ...form, weightKg: Number(form.weightKg), advancePayment: Number(form.advancePayment) });
+      await apiRequest('/custom-cakes', 'POST', { ...form, weightKg: Number(form.weightKg), quoteAmount: Number(form.quoteAmount), advancePayment: Number(form.advancePayment) });
       onSuccess();
     } catch (err) {
       setError(err.message || 'Failed to create order');
@@ -97,8 +109,12 @@ function BookingModal({ branches, onClose, onSuccess }) {
             </select>
           </div>
           <div>
+            <label>Quote Amount (₹) *</label>
+            <input type="number" style={inputStyle} value={form.quoteAmount} onChange={e => setForm({...form, quoteAmount: Number(e.target.value)})} min={0.01} step={0.01} required />
+          </div>
+          <div>
             <label>Advance Payment (₹) *</label>
-            <input type="number" style={inputStyle} value={form.advancePayment} onChange={e => setForm({...form, advancePayment: Number(e.target.value)})} min={0} required />
+            <input type="number" style={inputStyle} value={form.advancePayment} onChange={e => setForm({...form, advancePayment: Number(e.target.value)})} min={0} max={form.quoteAmount || undefined} required />
           </div>
           <div style={{ gridColumn: '1/-1' }}><label>Special Instructions</label><textarea style={{...inputStyle, resize: 'vertical'}} rows={3} value={form.specialInstructions} onChange={e => setForm({...form, specialInstructions: e.target.value})} placeholder="Design notes, inscription text, etc." /></div>
           <div style={{ gridColumn: '1/-1', display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
@@ -194,24 +210,23 @@ export default function CustomCakes({ triggerAlert }) {
                   <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-secondary)' }}>No orders found</td></tr>
                 ) : filteredOrders.map(order => (
                   <tr key={order.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={{ padding: '14px 16px', fontWeight: 700, fontFamily: 'monospace', fontSize: 13 }}>{order.orderNumber}</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 700, fontFamily: 'monospace', fontSize: 13 }}>{order.salesOrder?.orderNumber}</td>
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontWeight: 600 }}>{order.customer?.fullName || 'Unknown'}</div>
-                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{order.customer?.phone}</div>
+                      <div style={{ fontWeight: 600 }}>{order.salesOrder?.customer?.fullName || 'Unknown'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{order.salesOrder?.customer?.phone}</div>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontWeight: 600 }}>{order.flavor} — {order.cakeType} Layer</div>
-                      {order.eggless && <span style={{ fontSize: 11, background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: 100, fontWeight: 700 }}>⚠ EGGLESS</span>}
+                      <div style={{ fontWeight: 600 }}>{order.flavour} — {order.layers} Layer</div>
                       {order.specialInstructions && <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginTop: 2 }}>{order.specialInstructions.slice(0, 60)}...</div>}
                     </td>
-                    <td style={{ padding: '14px 16px', fontWeight: 600 }}>{order.weightKg} kg</td>
+                    <td style={{ padding: '14px 16px', fontWeight: 600 }}>{order.weight} kg</td>
                     <td style={{ padding: '14px 16px', fontSize: 13 }}>
-                      <div>{new Date(order.deliveryDatetime).toLocaleDateString('en-IN')}</div>
-                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{new Date(order.deliveryDatetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {order.deliveryType}</div>
+                      <div>{new Date(order.scheduledAt).toLocaleDateString('en-IN')}</div>
+                      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{new Date(order.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {order.deliveryOrPickup}</div>
                     </td>
                     <td style={{ padding: '14px 16px' }}><StatusBadge status={order.status} /></td>
                     <td style={{ padding: '14px 16px' }}>
-                      {!['DELIVERED', 'CANCELLED'].includes(order.status) && (
+                      {!['COMPLETED', 'CANCELLED', 'REJECTED', 'QC_FAILED'].includes(order.status) && (
                         <button className="btn-primary" onClick={() => handleAdvance(order.id)} style={{ padding: '6px 14px', fontSize: 12 }}>
                           → Advance
                         </button>

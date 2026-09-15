@@ -15,6 +15,7 @@ export interface CreateCustomCakeQuoteDto {
   decorationNotes?: string;
   messageOnCake?: string;
   designImages?: string[];
+  deliveryOrPickup?: string; // 'DELIVERY' | 'PICKUP'
   scheduledAt: Date;
   quoteAmount: number;
   advancePercentage?: number; // e.g. 50% advance
@@ -84,6 +85,7 @@ export class CustomCakesService {
           decorationNotes: dto.decorationNotes,
           messageOnCake: dto.messageOnCake,
           designImages: dto.designImages || [],
+          deliveryOrPickup: dto.deliveryOrPickup ?? 'DELIVERY',
           scheduledAt: new Date(dto.scheduledAt),
           quoteAmount: new Decimal(dto.quoteAmount),
           advanceAmount: new Decimal(advanceAmt),
@@ -114,7 +116,7 @@ export class CustomCakesService {
     });
   }
 
-  async transitionStatus(customCakeOrderId: string, newStatus: CustomCakeStatus, idempotencyKey?: string, userId?: string) {
+  async transitionStatus(customCakeOrderId: string, newStatus: CustomCakeStatus, idempotencyKey?: string, userId?: string, reason?: string) {
     if (idempotencyKey) {
       const existingRecord = await prisma.idempotencyRecord.findUnique({ where: { idempotencyKey } });
       if (existingRecord) {
@@ -158,6 +160,7 @@ export class CustomCakesService {
               customCakeOrderId,
               previousStatus: current.status,
               newStatus,
+              ...(reason ? { reason } : {}),
             },
             status: 'PENDING',
           },
@@ -166,6 +169,71 @@ export class CustomCakesService {
 
       return updated;
     });
+  }
+
+  // Standard forward-only happy path through the production lifecycle, used by the
+  // "advance to next stage" UI action which does not specify an explicit target status.
+  private readonly forwardPath: CustomCakeStatus[] = [
+    CustomCakeStatus.DRAFT,
+    CustomCakeStatus.QUOTED,
+    CustomCakeStatus.ADVANCE_PENDING,
+    CustomCakeStatus.CONFIRMED,
+    CustomCakeStatus.SCHEDULED,
+    CustomCakeStatus.IN_PRODUCTION,
+    CustomCakeStatus.BAKING,
+    CustomCakeStatus.ICING,
+    CustomCakeStatus.DECORATION,
+    CustomCakeStatus.QC,
+    CustomCakeStatus.READY,
+    CustomCakeStatus.DISPATCHED,
+    CustomCakeStatus.DELIVERED,
+    CustomCakeStatus.COMPLETED,
+  ];
+
+  async advanceToNextStage(customCakeOrderId: string, userId?: string) {
+    const current = await prisma.customCakeOrder.findUnique({ where: { id: customCakeOrderId } });
+    if (!current) throw new NotFoundException('Custom cake order not found');
+
+    const idx = this.forwardPath.indexOf(current.status);
+    if (idx === -1 || idx >= this.forwardPath.length - 1) {
+      throw new BadRequestException('Order is already in its final stage');
+    }
+
+    return this.transitionStatus(customCakeOrderId, this.forwardPath[idx + 1], undefined, userId);
+  }
+
+  async findAll(organizationId: string, status?: CustomCakeStatus, branchId?: string) {
+    return prisma.customCakeOrder.findMany({
+      where: {
+        salesOrder: { organizationId, ...(branchId ? { branchId } : {}) },
+        ...(status ? { status } : { status: { not: CustomCakeStatus.CANCELLED } }),
+      },
+      include: {
+        salesOrder: { include: { customer: true, branch: { select: { id: true, name: true } } } },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  async findOne(id: string, organizationId: string) {
+    const order = await prisma.customCakeOrder.findFirst({
+      where: { id, salesOrder: { organizationId } },
+      include: { salesOrder: { include: { customer: true, branch: true } } },
+    });
+    if (!order) throw new NotFoundException('Custom cake order not found');
+    return order;
+  }
+
+  async getPipelineSummary(organizationId: string) {
+    const counts = await prisma.customCakeOrder.groupBy({
+      by: ['status'],
+      _count: true,
+      where: { salesOrder: { organizationId }, status: { not: CustomCakeStatus.CANCELLED } },
+    });
+    return counts.reduce(
+      (acc: Record<string, number>, c: any) => ({ ...acc, [c.status]: c._count }),
+      {} as Record<string, number>
+    );
   }
 
   async passQcGate(dto: QcGateDto) {
