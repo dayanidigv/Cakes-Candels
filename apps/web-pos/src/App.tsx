@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import './index.css';
 import { PointOfSale } from './pages/PointOfSale';
+import { useAuthStore } from './stores/useAuthStore';
 
 // ─── Login Page ─────────────────────────────────────────────────────────────────
-function LoginPage({ onLogin }: { onLogin: () => void }) {
+function LoginPage() {
+  const login = useAuthStore((s) => s.login);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,11 +22,24 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
-      if (data.success || data.data?.token) { onLogin(); }
-      else { setError(data.message || 'Invalid credentials'); }
+      if (data.success && data.data?.accessToken) {
+        const { accessToken, user } = data.data;
+        login(
+          {
+            id: user.id,
+            name: user.fullName ?? user.username,
+            username: user.username,
+            role: user.roles?.[0] ?? '',
+            branchId: user.branchId,
+            branchName: user.branchName ?? '',
+          },
+          accessToken
+        );
+      } else {
+        setError(data.message || 'Invalid credentials');
+      }
     } catch {
-      setError('Cannot connect to server. Using demo mode.');
-      setTimeout(() => onLogin(), 800);
+      setError('Cannot connect to server. Please try again.');
     } finally { setLoading(false); }
   };
 
@@ -61,8 +76,8 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
 
 // ─── Main POS App ───────────────────────────────────────────────────────────────
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  if (!isLoggedIn) return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  if (!isAuthenticated) return <LoginPage />;
   return <PointOfSale />;
 }

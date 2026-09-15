@@ -1,12 +1,14 @@
+import { useAuthStore } from '../stores/useAuthStore';
+
 const API_BASE = 'http://localhost:3000/api';
-const DEV_TOKEN = 'SUPER_ADMIN_TOKEN_99999999999999999999999999999999';
 
 export const apiRequest = async (path: string, method = 'GET', body?: any) => {
+  const token = useAuthStore.getState().token;
   const response = await fetch(`${API_BASE}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'X-Dev-Token': DEV_TOKEN,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -20,9 +22,9 @@ export const apiRequest = async (path: string, method = 'GET', body?: any) => {
 
 // Product catalog
 export const getProducts = (categoryId?: string) =>
-  apiRequest(`/products${categoryId ? `?categoryId=${categoryId}` : ''}`);
+  apiRequest(`/masters/products${categoryId ? `?categoryId=${categoryId}` : ''}`);
 
-export const getCategories = () => apiRequest('/categories');
+export const getCategories = () => apiRequest('/masters/categories');
 
 // Customer lookup
 export const getCustomerByPhone = (phone: string) =>
